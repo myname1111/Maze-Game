@@ -33,6 +33,21 @@ class Vec2:
     def __floordiv__(self, other: Self):
         return Vec2(self.x // other.x, self.y // other.y)
 
+@dataclass
+class Keys:
+    is_key_down: dict[int, bool]
+
+    def update(self, event: pygame.event.Event):
+        if event.type == pygame.KEYDOWN:
+            self.is_key_down[event.key] = True
+        elif event.type == pygame.KEYUP:
+            self.is_key_down[event.key] = False
+
+    def pressed(self, key: int) -> bool:
+        if key in self.is_key_down:
+            return self.is_key_down[key]
+        else:
+            return False
 
 class Player:
 
@@ -40,11 +55,15 @@ class Player:
         self.position = Vec2(0, 0) if position is None else position
         self.image = pygame.image.load(f"{dir}/imgs/player.png")
 
-    def on_key(self, key: int):
-        if key == pygame.K_LEFT:
-            self.position.x -= 10
-        elif key == pygame.K_RIGHT:
-            self.position.x += 10
+    def on_key(self, key: Keys):
+        if key.pressed(pygame.K_LEFT):
+            self.position.x -= 1
+        if key.pressed(pygame.K_RIGHT):
+            self.position.x += 1
+        if key.pressed(pygame.K_DOWN):
+            self.position.y += 1
+        if key.pressed(pygame.K_UP):
+            self.position.y -= 1
 
     def render(self, screen: pygame.Surface):
         screen.blit(self.image, self.position.to_tuple())
@@ -93,15 +112,16 @@ pygame.init()
 window = pygame.display.set_mode((1280, 720))
 running = True
 player = Player()
+keys = Keys({})
 
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             print("quit game")
             running = False
-        if event.type == pygame.KEYDOWN:
-            player.on_key(event.key)
+        keys.update(event)
 
+    player.on_key(keys)
     player.render(window)
     pygame.display.flip()
 
