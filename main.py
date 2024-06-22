@@ -51,50 +51,21 @@ class Keys:
             return False
 
 
-class Player:
-
-    def __init__(self, position: Optional[Vec2] = None) -> None:
-        self.position = Vec2(0, 0) if position is None else position
-        self.image = pygame.image.load(f"{dir}/imgs/player.png")
-
-    def on_key(self, key: Keys):
-        if key.pressed(pygame.K_LEFT):
-            self.position.x -= 1
-        if key.pressed(pygame.K_RIGHT):
-            self.position.x += 1
-        if key.pressed(pygame.K_DOWN):
-            self.position.y += 1
-        if key.pressed(pygame.K_UP):
-            self.position.y -= 1
-
-    def render(self, screen: pygame.Surface):
-        screen.blit(self.image, self.position.to_tuple())
-
-
-def get_points(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2, Vec2, Vec2]:
-    return (
-        Vec2(pos.x, pos.y),
-        Vec2(pos.x, pos.y + size.y),
-        Vec2(pos.x + size.x, pos.y),
-        Vec2(pos.x + size.x, pos.y + size.y),
-    )
-
-
 class Maze:
     def __init__(self, in_str: str):
         self.rows = 0
         self.cols = 1
         self.maze = []
         for char in in_str:
-            if char == '\n':
+            if char == "\n":
                 self.rows = 0
                 self.cols += 1
             else:
                 self.rows += 1
 
-            if char == '#':
+            if char == "#":
                 self.maze.append(True)
-            elif char == ' ':
+            elif char == " ":
                 self.maze.append(False)
 
     def is_collide(self, row: int, col: int) -> bool:
@@ -132,11 +103,49 @@ class MazeSprite:
         return is_collide
 
     def render(self, screen: pygame.Surface):
-        for (idx, cell) in enumerate(self.maze.maze):
+        for idx, cell in enumerate(self.maze.maze):
             x = idx % self.maze.cols
             y = idx // self.maze.cols
             if cell:
                 screen.blit(self.cell_image, self.from_index((x, y)).to_tuple())
+
+
+class Player:
+
+    def __init__(self, position: Optional[Vec2] = None) -> None:
+        self.position = Vec2(0, 0) if position is None else position
+        self.image = pygame.image.load(f"{dir}/imgs/player.png")
+        self.is_alive = True
+
+    def on_key(self, key: Keys):
+        if key.pressed(pygame.K_LEFT):
+            self.position.x -= 1
+        if key.pressed(pygame.K_RIGHT):
+            self.position.x += 1
+        if key.pressed(pygame.K_DOWN):
+            self.position.y += 1
+        if key.pressed(pygame.K_UP):
+            self.position.y -= 1
+
+    def collision_detection(self, maze: MazeSprite):
+        is_collide = maze.collide_with_sprite(self.position, Vec2(64, 64))
+        if is_collide:
+            self.is_alive = False
+
+    def render(self, screen: pygame.Surface):
+        if not self.is_alive:
+            return
+
+        screen.blit(self.image, self.position.to_tuple())
+
+
+def get_points(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2, Vec2, Vec2]:
+    return (
+        Vec2(pos.x, pos.y),
+        Vec2(pos.x, pos.y + size.y),
+        Vec2(pos.x + size.x, pos.y),
+        Vec2(pos.x + size.x, pos.y + size.y),
+    )
 
 
 pygame.init()
@@ -147,18 +156,21 @@ keys = Keys({})
 maze = MazeSprite(
     Vec2(64, 64),
     pygame.image.load(f"{dir}/imgs/wall.png"),
-    Maze('\n'.join([
-            "########",
-            "   ##   ",
-            "   ##   ",
-            "#  ##  #",
-            "#  ##  #",
-            "#      #",
-            "#      #",
-            "########"
-        ])
+    Maze(
+        "\n".join(
+            [
+                "   ##   ",
+                "   ##   ",
+                "#  ##  #",
+                "#  ##  #",
+                "#  ##  #",
+                "#      #",
+                "#      #",
+                "########",
+            ]
+        )
     ),
-    Vec2(0, 0)
+    Vec2(0, 0),
 )
 
 while running:
@@ -169,12 +181,16 @@ while running:
         keys.update(event)
 
     player.on_key(keys)
-    
+
+    player.collision_detection(maze)
+
     player.render(window)
     maze.render(window)
-
-    # print(maze.collide_with_sprite(player.position, Vec2(64, 64)))
 
     pygame.display.flip()
 
     window.fill((0, 0, 0))
+
+    if not player.is_alive:
+        print("YOU DIED")
+        break
