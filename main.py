@@ -98,10 +98,12 @@ class Maze:
                 self.maze.append(False)
 
     def is_collide(self, row: int, col: int) -> bool:
-        try:
-            return self.maze[row + self.rows * col]
-        except IndexError:
+        if row >= self.rows:
             return False
+        if col >= self.rows:
+            return False
+
+        return self.maze[row + self.rows * col]
 
 
 @dataclass
@@ -166,6 +168,8 @@ while running:
     
     player.render(window)
     maze.render(window)
+
+    # print(maze.collide_with_sprite(player.position, Vec2(64, 64)))
 
     pygame.display.flip()
 
