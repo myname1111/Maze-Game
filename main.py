@@ -83,7 +83,7 @@ def get_points(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2, Vec2, Vec2]:
 class Maze:
     def __init__(self, in_str: str):
         self.rows = 0
-        self.cols = 0
+        self.cols = 1
         self.maze = []
         for char in in_str:
             if char == '\n':
@@ -98,7 +98,10 @@ class Maze:
                 self.maze.append(False)
 
     def is_collide(self, row: int, col: int) -> bool:
-        return self.maze[row + self.rows * col]
+        try:
+            return self.maze[row + self.rows * col]
+        except IndexError:
+            return False
 
 
 @dataclass
@@ -112,6 +115,9 @@ class MazeSprite:
         out = (pos - self.offset) // self.cell_size
         return (int(out.x), int(out.y))
 
+    def from_index(self, pos: Tuple[int, int]) -> Vec2:
+        return Vec2(pos[0], pos[1]) * self.cell_size + self.offset
+
     def is_point_collide(self, pos: Vec2) -> bool:
         index = self.to_index(pos)
         return self.maze.is_collide(index[0], index[1])
@@ -123,6 +129,13 @@ class MazeSprite:
             is_collide |= self.is_point_collide(point)
         return is_collide
 
+    def render(self, screen: pygame.Surface):
+        for (idx, cell) in enumerate(self.maze.maze):
+            x = idx % self.maze.cols
+            y = idx // self.maze.cols
+            if cell:
+                screen.blit(self.cell_image, self.from_index((x, y)).to_tuple())
+
 
 pygame.init()
 window = pygame.display.set_mode((1280, 720))
@@ -130,8 +143,8 @@ running = True
 player = Player()
 keys = Keys({})
 maze = MazeSprite(
-    Vec2(10, 10),
-    pygame.image.load(f"{dir}/imgs/player.png"),
+    Vec2(64, 64),
+    pygame.image.load(f"{dir}/imgs/wall.png"),
     Maze('\n'.join([
             "    ",
             " ###",
@@ -150,7 +163,10 @@ while running:
         keys.update(event)
 
     player.on_key(keys)
+    
     player.render(window)
+    maze.render(window)
+
     pygame.display.flip()
 
     window.fill((0, 0, 0))
