@@ -33,6 +33,7 @@ class Vec2:
     def __floordiv__(self, other: Self):
         return Vec2(self.x // other.x, self.y // other.y)
 
+
 @dataclass
 class Keys:
     is_key_down: dict[int, bool]
@@ -48,6 +49,7 @@ class Keys:
             return self.is_key_down[key]
         else:
             return False
+
 
 class Player:
 
@@ -68,6 +70,7 @@ class Player:
     def render(self, screen: pygame.Surface):
         screen.blit(self.image, self.position.to_tuple())
 
+
 def get_points(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2, Vec2, Vec2]:
     return (
         Vec2(pos.x, pos.y),
@@ -76,11 +79,23 @@ def get_points(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2, Vec2, Vec2]:
         Vec2(pos.x + size.x, pos.y + size.y),
     )
 
-@dataclass
+
 class Maze:
-    maze: list[bool]
-    cols: int
-    rows: int
+    def __init__(self, in_str: str):
+        self.rows = 0
+        self.cols = 0
+        self.maze = []
+        for char in in_str:
+            if char == '\n':
+                self.rows = 0
+                self.cols += 1
+            else:
+                self.rows += 1
+
+            if char == '#':
+                self.maze.append(True)
+            elif char == ' ':
+                self.maze.append(False)
 
     def is_collide(self, row: int, col: int) -> bool:
         return self.maze[row + self.rows * col]
@@ -108,11 +123,24 @@ class MazeSprite:
             is_collide |= self.is_point_collide(point)
         return is_collide
 
+
 pygame.init()
 window = pygame.display.set_mode((1280, 720))
 running = True
 player = Player()
 keys = Keys({})
+maze = MazeSprite(
+    Vec2(10, 10),
+    pygame.image.load(f"{dir}/imgs/player.png"),
+    Maze('\n'.join([
+            "    ",
+            " ###",
+            " #  ",
+            " #  "
+        ])
+    ),
+    Vec2(0, 0)
+)
 
 while running:
     for event in pygame.event.get():
