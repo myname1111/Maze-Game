@@ -52,29 +52,18 @@ class Keys:
 
 
 class Maze:
-    def __init__(self, in_str: str):
-        self.rows = 0
-        self.cols = 1
-        self.maze = []
-        for char in in_str:
-            if char == "\n":
-                self.rows = 0
-                self.cols += 1
-            else:
-                self.rows += 1
+    def __init__(self, in_str: list[str]):
+        self.cols = len(in_str[0])
+        self.rows = len(in_str)
+        self.maze = "".join(in_str)
 
-            if char == "#":
-                self.maze.append(True)
-            elif char == " ":
-                self.maze.append(False)
-
-    def is_collide(self, row: int, col: int) -> bool:
+    def is_collide(self, col: int, row: int) -> bool:
         if row >= self.rows:
             return False
-        if col >= self.rows:
+        if col >= self.cols:
             return False
 
-        return self.maze[row + self.rows * col]
+        return self.maze[col + self.cols * row] != " "
 
 
 @dataclass
@@ -106,7 +95,7 @@ class MazeSprite:
         for idx, cell in enumerate(self.maze.maze):
             x = idx % self.maze.cols
             y = idx // self.maze.cols
-            if cell:
+            if cell == "#":
                 screen.blit(self.cell_image, self.from_index((x, y)).to_tuple())
 
 
@@ -149,7 +138,7 @@ def get_points(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2, Vec2, Vec2]:
 
 
 pygame.init()
-window = pygame.display.set_mode((1280, 720))
+window = pygame.display.set_mode((1920, 1080))
 running = True
 player = Player()
 keys = Keys({})
@@ -157,21 +146,28 @@ maze = MazeSprite(
     Vec2(64, 64),
     pygame.image.load(f"{dir}/imgs/wall.png"),
     Maze(
-        "\n".join(
             [
-                "   ##   ",
-                "   ##   ",
-                "#  ##  #",
-                "#  ##  #",
-                "#  ##  #",
-                "#      #",
-                "#      #",
-                "########",
+                "   #############",
+                "   #        #  #",
+                "#  #        #  #",
+                "#  #  ####  #  #",
+                "#     #  #     #",
+                "#     #  #     #",
+                "#######  ####  #",
+                "#              #",
+                "#              #",
+                "#  #  ##########",
+                "#  #  #        #",
+                "#  ####        #",
+                "#        ####   ",
+                "#        #  #   ",
+                "##########  ####",
             ]
-        )
     ),
     Vec2(0, 0),
 )
+
+print(maze.maze.rows, maze.maze.cols)
 
 while running:
     for event in pygame.event.get():
