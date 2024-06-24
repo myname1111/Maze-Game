@@ -79,7 +79,7 @@ class Maze:
 @dataclass
 class MazeSprite:
     cell_size: Vec2
-    cell_image: pygame.Surface
+    cell_image: dict[str, pygame.Surface]
     maze: Maze
     offset: Vec2
 
@@ -105,8 +105,9 @@ class MazeSprite:
         for idx, cell in enumerate(self.maze.maze):
             x = idx % self.maze.cols
             y = idx // self.maze.cols
-            if cell == "#":
-                screen.blit(self.cell_image, self.from_index((x, y)).to_tuple())
+
+            if cell in self.cell_image:
+                screen.blit(self.cell_image[cell], self.from_index((x, y)).to_tuple())
 
 
 class Player:
@@ -154,12 +155,15 @@ player = Player()
 keys = Keys({})
 maze = MazeSprite(
     Vec2(64, 64),
-    pygame.image.load(f"{dir}/imgs/wall.png"),
+    {
+        "#": pygame.image.load(f"{dir}/imgs/wall.png"),
+        "X": pygame.image.load(f"{dir}/imgs/win.png"),
+    },
     Maze(
         [
             "   #############",
             "   #        #  #",
-            "#  #        #  #",
+            "#  #       X#  #",
             "#  #  ####  #  #",
             "#     #  #     #",
             "#     #  #     #",
@@ -170,7 +174,7 @@ maze = MazeSprite(
             "#  #  #        #",
             "#  ####        #",
             "#        ####   ",
-            "#        #  #   ",
+            "#        #  #  X",
             "##########  ####",
         ]
     ),
