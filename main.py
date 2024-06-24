@@ -198,7 +198,7 @@ while running:
     maze.render(window)
 
     if not player.is_alive:
-        window.blit(lose, lose.get_rect(center=()))
+        window.blit(lose, lose.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
 
     pygame.display.flip()
 
