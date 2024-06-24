@@ -6,8 +6,11 @@ from dataclasses import dataclass
 from typing import Optional, Self, Tuple
 
 import pygame
+from pygame import font
 
 dir = "E:/Python/maze_game_test"
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 
 
 @dataclass
@@ -32,6 +35,13 @@ class Vec2:
 
     def __floordiv__(self, other: Self):
         return Vec2(self.x // other.x, self.y // other.y)
+
+
+def vec2_from_int_tuple(tup: Tuple[int | float, int | float]) -> Vec2:
+    return Vec2(tup[0], tup[1])
+
+
+SCREEN_SIZE = Vec2(SCREEN_WIDTH, SCREEN_HEIGHT)
 
 
 @dataclass
@@ -138,7 +148,7 @@ def get_points(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2, Vec2, Vec2]:
 
 
 pygame.init()
-window = pygame.display.set_mode((1920, 1080))
+window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
 player = Player()
 keys = Keys({})
@@ -146,28 +156,32 @@ maze = MazeSprite(
     Vec2(64, 64),
     pygame.image.load(f"{dir}/imgs/wall.png"),
     Maze(
-            [
-                "   #############",
-                "   #        #  #",
-                "#  #        #  #",
-                "#  #  ####  #  #",
-                "#     #  #     #",
-                "#     #  #     #",
-                "#######  ####  #",
-                "#              #",
-                "#              #",
-                "#  #  ##########",
-                "#  #  #        #",
-                "#  ####        #",
-                "#        ####   ",
-                "#        #  #   ",
-                "##########  ####",
-            ]
+        [
+            "   #############",
+            "   #        #  #",
+            "#  #        #  #",
+            "#  #  ####  #  #",
+            "#     #  #     #",
+            "#     #  #     #",
+            "#######  ####  #",
+            "#              #",
+            "#              #",
+            "#  #  ##########",
+            "#  #  #        #",
+            "#  ####        #",
+            "#        ####   ",
+            "#        #  #   ",
+            "##########  ####",
+        ]
     ),
     Vec2(0, 0),
 )
 
 print(maze.maze.rows, maze.maze.cols)
+
+font.init()
+font = font.Font(None, 70)
+lose = font.render("LOSE", True, (241, 40, 12))
 
 while running:
     for event in pygame.event.get():
@@ -183,10 +197,9 @@ while running:
     player.render(window)
     maze.render(window)
 
+    if not player.is_alive:
+        window.blit(lose, lose.get_rect(center=()))
+
     pygame.display.flip()
 
     window.fill((0, 0, 0))
-
-    if not player.is_alive:
-        print("YOU DIED")
-        break
