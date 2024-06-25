@@ -3,6 +3,7 @@
 # https://youtu.be/qSBmjSsscI4?si=vqTnT000AKvSXsvN
 # Tutorial Pygames : https://youtu.be/AY9MnQ4x3zk?si=MllMZl8EfBFfR9KR
 from dataclasses import dataclass
+from enum import Enum, IntEnum
 from typing import Optional, Self, Tuple
 
 import pygame
@@ -67,13 +68,13 @@ class Maze:
         self.rows = len(in_str)
         self.maze = "".join(in_str)
 
-    def is_collide(self, col: int, row: int) -> bool:
+    def get(self, col: int, row: int) -> str:
         if row >= self.rows:
-            return False
+            return " "
         if col >= self.cols:
-            return False
+            return " "
 
-        return self.maze[col + self.cols * row] != " "
+        return self.maze[col + self.cols * row]
 
 
 @dataclass
@@ -90,16 +91,13 @@ class MazeSprite:
     def from_index(self, pos: Tuple[int, int]) -> Vec2:
         return Vec2(pos[0], pos[1]) * self.cell_size + self.offset
 
-    def is_point_collide(self, pos: Vec2) -> bool:
+    def is_point_collide(self, pos: Vec2) -> str:
         index = self.to_index(pos)
-        return self.maze.is_collide(index[0], index[1])
+        return self.maze.get(index[0], index[1])
 
-    def collide_with_sprite(self, other_pos: Vec2, other_size: Vec2) -> bool:
+    def collide_with_sprite(self, other_pos: Vec2, other_size: Vec2) -> list[str]:
         points = get_points(other_pos, other_size)
-        is_collide = False
-        for point in points:
-            is_collide |= self.is_point_collide(point)
-        return is_collide
+        return [self.is_point_collide(point) for point in points]
 
     def render(self, screen: pygame.Surface):
         for idx, cell in enumerate(self.maze.maze):
@@ -110,14 +108,28 @@ class MazeSprite:
                 screen.blit(self.cell_image[cell], self.from_index((x, y)).to_tuple())
 
 
+class GameState(IntEnum):
+    LOSE = 0
+    WIN = 1
+    PLAY = 2
+
+    def combine_state(self, other: Self) -> Self:
+        if self < other:
+            return self
+        else:
+            return other
+
+
 class Player:
 
     def __init__(self, position: Optional[Vec2] = None) -> None:
         self.position = Vec2(0, 0) if position is None else position
         self.image = pygame.image.load(f"{dir}/imgs/player.png")
-        self.is_alive = True
 
-    def on_key(self, key: Keys):
+    def on_key(self, key: Keys, state: GameState):
+        if state == GameState.LOSE:
+            return
+
         if key.pressed(pygame.K_LEFT):
             self.position.x -= 1
         if key.pressed(pygame.K_RIGHT):
@@ -127,13 +139,27 @@ class Player:
         if key.pressed(pygame.K_UP):
             self.position.y -= 1
 
-    def collision_detection(self, maze: MazeSprite):
-        is_collide = maze.collide_with_sprite(self.position, Vec2(64, 64))
-        if is_collide:
-            self.is_alive = False
+    def collide_with_cell(self, cell: str, init_state: GameState) -> GameState:
+        match cell:
+            case " ":
+                return init_state
+            case "#":
+                return GameState.LOSE
+            case "X":
+                return GameState.WIN
+            case _:
+                assert False
 
-    def render(self, screen: pygame.Surface):
-        if not self.is_alive:
+    def collision_detection(self, maze: MazeSprite, init_state: GameState) -> GameState:
+        collided_cells = maze.collide_with_sprite(self.position, Vec2(64, 64))
+        state = init_state
+        for collided_cell in collided_cells:
+            state = state.combine_state(self.collide_with_cell(collided_cell, state))
+        print(state)
+        return state
+
+    def render(self, screen: pygame.Surface, state: GameState):
+        if state == GameState.LOSE:
             return
 
         screen.blit(self.image, self.position.to_tuple())
@@ -186,6 +212,7 @@ print(maze.maze.rows, maze.maze.cols)
 font.init()
 font = font.Font(None, 70)
 lose = font.render("LOSE", True, (241, 40, 12))
+game_state = GameState.PLAY
 
 while running:
     for event in pygame.event.get():
@@ -194,14 +221,13 @@ while running:
             running = False
         keys.update(event)
 
-    player.on_key(keys)
-
-    player.collision_detection(maze)
-
-    player.render(window)
+    player.on_key(keys, game_state)
+    player.render(window, game_state)
     maze.render(window)
 
-    if not player.is_alive:
+    game_state = player.collision_detection(maze, game_state)
+
+    if game_state == GameState.LOSE:
         window.blit(lose, lose.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
 
     pygame.display.flip()
