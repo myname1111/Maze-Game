@@ -212,6 +212,7 @@ print(maze.maze.rows, maze.maze.cols)
 font.init()
 font = font.Font(None, 70)
 lose = font.render("LOSE", True, (241, 40, 12))
+win = font.render("WIN", True, (19, 232, 51))
 game_state = GameState.PLAY
 
 while running:
@@ -229,6 +230,8 @@ while running:
 
     if game_state == GameState.LOSE:
         window.blit(lose, lose.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+    if game_state == GameState.WIN:
+        window.blit(win, win.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
 
     pygame.display.flip()
 
