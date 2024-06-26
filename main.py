@@ -132,25 +132,29 @@ class GameState(IntEnum):
 class Player:
 
     def __init__(
-        self, position: Optional[Vec2] = None, size: Optional[Vec2] = None
+        self,
+        position: Optional[Vec2] = None,
+        size: Optional[Vec2] = None,
+        speed: float = 1,
     ) -> None:
         self.position = Vec2(0, 0) if position is None else position
         self.image = pygame.image.load(f"{dir}/imgs/player.png")
         if size is not None:
             self.image = pygame.transform.scale(self.image, size.to_tuple())
+        self.speed = speed
 
     def on_key(self, key: Keys, state: GameState):
         if state == GameState.LOSE:
             return
 
         if key.pressed(pygame.K_LEFT):
-            self.position.x -= 1
+            self.position.x -= self.speed
         if key.pressed(pygame.K_RIGHT):
-            self.position.x += 1
+            self.position.x += self.speed
         if key.pressed(pygame.K_DOWN):
-            self.position.y += 1
+            self.position.y += self.speed
         if key.pressed(pygame.K_UP):
-            self.position.y -= 1
+            self.position.y -= self.speed
 
     def collide_with_cell(self, cell: str, init_state: GameState) -> GameState:
         match cell:
@@ -197,10 +201,10 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
 pygame.init()
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
-player = Player(size=Vec2(32, 32))
+player = Player(speed=0.5)
 keys = Keys({})
 maze = MazeSprite(
-    Vec2(32, 32),
+    Vec2(64, 64),
     {
         "#": pygame.image.load(f"{dir}/imgs/wall.png"),
         "X": pygame.image.load(f"{dir}/imgs/win.png"),
@@ -226,8 +230,6 @@ maze = MazeSprite(
     ),
     Vec2(0, 0),
 )
-
-print(maze.maze.rows, maze.maze.cols)
 
 font.init()
 font = font.Font(None, 70)
