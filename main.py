@@ -77,12 +77,21 @@ class Maze:
         return self.maze[col + self.cols * row]
 
 
-@dataclass
 class MazeSprite:
-    cell_size: Vec2
-    cell_image: dict[str, pygame.Surface]
-    maze: Maze
-    offset: Vec2
+    def __init__(
+        self,
+        cell_size: Vec2,
+        cell_image: dict[str, pygame.Surface],
+        maze: Maze,
+        offset: Vec2,
+    ) -> None:
+        self.cell_size = cell_size
+        self.cell_image = {
+            cell: pygame.transform.scale(cell_image[cell], self.cell_size.to_tuple())
+            for cell in cell_image
+        }
+        self.maze = maze
+        self.offset = offset
 
     def to_index(self, pos: Vec2) -> Tuple[int, int]:
         out = (pos - self.offset) // self.cell_size
@@ -122,9 +131,13 @@ class GameState(IntEnum):
 
 class Player:
 
-    def __init__(self, position: Optional[Vec2] = None) -> None:
+    def __init__(
+        self, position: Optional[Vec2] = None, size: Optional[Vec2] = None
+    ) -> None:
         self.position = Vec2(0, 0) if position is None else position
         self.image = pygame.image.load(f"{dir}/imgs/player.png")
+        if size is not None:
+            self.image = pygame.transform.scale(self.image, size.to_tuple())
 
     def on_key(self, key: Keys, state: GameState):
         if state == GameState.LOSE:
@@ -184,10 +197,10 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
 pygame.init()
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
-player = Player()
+player = Player(size=Vec2(32, 32))
 keys = Keys({})
 maze = MazeSprite(
-    Vec2(64, 64),
+    Vec2(32, 32),
     {
         "#": pygame.image.load(f"{dir}/imgs/wall.png"),
         "X": pygame.image.load(f"{dir}/imgs/win.png"),
