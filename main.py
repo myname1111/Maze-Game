@@ -201,7 +201,7 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
 pygame.init()
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
-player = Player(speed=0.5)
+player = Player(speed=0.5, size=Vec2(32, 32))
 keys = Keys({})
 maze = MazeSprite(
     Vec2(64, 64),
@@ -211,21 +211,14 @@ maze = MazeSprite(
     },
     Maze(
         [
-            "   #############",
-            "   #        #  #",
-            "#  #       X#  #",
-            "#  #  ####  #  #",
-            "#     #  #     #",
-            "#     #  #     #",
-            "#######  ####  #",
-            "#              #",
-            "#              #",
-            "#  #  ##########",
-            "#  #  #        #",
-            "#  ####        #",
-            "#        ####   ",
-            "#        #  #  X",
-            "##########  ####",
+            "  ######",
+            "# #   #X",
+            "# ### # ",
+            "#     # ",
+            "##  ### ",
+            "#   #   ",
+            "### ### ",
+            "  #     ",
         ]
     ),
     Vec2(0, 0),
