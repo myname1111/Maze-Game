@@ -91,13 +91,13 @@ class MazeSprite:
     def from_index(self, pos: Tuple[int, int]) -> Vec2:
         return Vec2(pos[0], pos[1]) * self.cell_size + self.offset
 
-    def is_point_collide(self, pos: Vec2) -> str:
-        index = self.to_index(pos)
-        return self.maze.get(index[0], index[1])
-
     def collide_with_sprite(self, other_pos: Vec2, other_size: Vec2) -> list[str]:
-        points = get_points(other_pos, other_size)
-        return [self.is_point_collide(point) for point in points]
+        points = get_bounding_box(other_pos, other_size)
+        grid_index_bounding_box = [self.to_index(point) for point in points]
+        indicies = get_list_of_indicies_inside_grid_index_bounding_box(
+            grid_index_bounding_box[0], grid_index_bounding_box[1]
+        )
+        return [self.maze.get(index[0], index[1]) for index in indicies]
 
     def render(self, screen: pygame.Surface):
         for idx, cell in enumerate(self.maze.maze):
@@ -151,11 +151,12 @@ class Player:
                 assert False
 
     def collision_detection(self, maze: MazeSprite, init_state: GameState) -> GameState:
-        collided_cells = maze.collide_with_sprite(self.position, Vec2(64, 64))
+        collided_cells = maze.collide_with_sprite(
+            self.position, vec2_from_int_tuple(self.image.get_size())
+        )
         state = init_state
         for collided_cell in collided_cells:
             state = state.combine_state(self.collide_with_cell(collided_cell, state))
-        print(state)
         return state
 
     def render(self, screen: pygame.Surface, state: GameState):
@@ -165,11 +166,17 @@ class Player:
         screen.blit(self.image, self.position.to_tuple())
 
 
-def get_points(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2, Vec2, Vec2]:
+def get_list_of_indicies_inside_grid_index_bounding_box(
+    start: Tuple[int, int], to: Tuple[int, int]
+) -> list[Tuple[int, int]]:
+    return [
+        (x, y) for y in range(start[1], to[1] + 1) for x in range(start[0], to[0] + 1)
+    ]
+
+
+def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
     return (
         Vec2(pos.x, pos.y),
-        Vec2(pos.x, pos.y + size.y),
-        Vec2(pos.x + size.x, pos.y),
         Vec2(pos.x + size.x, pos.y + size.y),
     )
 
