@@ -1,9 +1,9 @@
-# https://youtu.be/qSBmjSsscI4?si=vqTnT000AKvSXsvN
-# Tutorial Pygames : https://youtu.be/AY9MnQ4x3zk?si=MllMZl8EfBFfR9KR
-# https://youtu.be/qSBmjSsscI4?si=vqTnT000AKvSXsvN
-# Tutorial Pygames : https://youtu.be/AY9MnQ4x3zk?si=MllMZl8EfBFfR9KR
+# TODO:
+# - Make maze generation algorithm
+# - Make maze pathfinding algorithm
+import random
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import IntEnum
 from typing import Optional, Self, Tuple
 
 import pygame
@@ -62,11 +62,56 @@ class Keys:
             return False
 
 
+def get_cell_in_grid(paths, index: Tuple[int, int]):
+    return paths[index[0]][index[1]]
+
+
+def move_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int, int]:
+    if direction == 0:
+        return (index[0], index[1] - 1)
+    elif direction == 1:
+        return (index[0], index[1] + 1)
+    elif direction == 2:
+        return (index[0] + 1, index[1])
+    elif direction == 3:
+        return (index[0] - 1, index[1])
+    else:
+        assert False
+
+
 class Maze:
-    def __init__(self, in_str: list[str]):
-        self.cols = len(in_str[0])
-        self.rows = len(in_str)
-        self.maze = "".join(in_str)
+    def __init__(self, size: Tuple[int, int]):
+        self.cols = size[0]
+        self.rows = size[1]
+        self.maze = ""
+        paths = [[[None] * size[0]] * size[1]][0]
+        print(paths)
+        cells = size[0] * size[1]
+        reached = 1
+        curr_cell = (0, 0)
+        while reached < cells:
+            possible_directions = [1, 2, 3, 4]
+            random.shuffle(possible_directions)
+            # 0: DOWN
+            # 1: UP
+            # 2: RIGHT
+            # 3: LEFT
+            next_cell = None
+            curr_cell_direction: Optional[int] = get_cell_in_grid(paths, curr_cell)
+            for direction in possible_directions:
+                possible_next_cell = move_index_by_direction(curr_cell, direction)
+
+                is_connected = get_cell_in_grid(paths, possible_next_cell) is None
+                if not is_connected:
+                    next_cell = possible_next_cell
+                    break
+
+            if next_cell != None:
+                # The current cell **shouldn't** be able to be both not connected and have a possible direction at the same time
+                if curr_cell_direction != None:
+                    next_cell = move_index_by_direction(curr_cell, curr_cell_direction)
+
+                curr_cell = next_cell
 
     def get(self, col: int, row: int) -> str:
         if row >= self.rows:
@@ -209,18 +254,7 @@ maze = MazeSprite(
         "#": pygame.image.load(f"{dir}/imgs/wall.png"),
         "X": pygame.image.load(f"{dir}/imgs/win.png"),
     },
-    Maze(
-        [
-            "  ######",
-            "# #   #X",
-            "# ### # ",
-            "#     # ",
-            "##  ### ",
-            "#   #   ",
-            "### ### ",
-            "  #     ",
-        ]
-    ),
+    Maze((8, 8)),
     Vec2(0, 0),
 )
 
