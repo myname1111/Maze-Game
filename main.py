@@ -1,6 +1,3 @@
-# TODO:
-# - Make maze generation algorithm
-# - Make maze pathfinding algorithm
 import random
 from dataclasses import dataclass
 from enum import IntEnum
