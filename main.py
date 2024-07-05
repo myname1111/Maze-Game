@@ -79,39 +79,52 @@ def move_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int
         assert False
 
 
+def get_next_cell_in_grid(
+    curr_cell: Tuple[int, int], grid
+) -> Tuple[Tuple[int, int], bool]:
+    possible_directions = [1, 2, 3, 4]
+    random.shuffle(possible_directions)
+    next_cell = None
+    for direction in possible_directions:
+        cell_in_direction = move_index_by_direction(curr_cell, direction)
+
+        is_connected = get_cell_in_grid(grid, cell_in_direction) is not None
+        if not is_connected:
+            next_cell = cell_in_direction
+            break
+
+    if next_cell is not None:
+        return (next_cell, True)
+
+    dir_towards_prev_cell: Optional[int] = get_cell_in_grid(grid, curr_cell)
+    if dir_towards_prev_cell is not None:
+        prev_cell = move_index_by_direction(curr_cell, dir_towards_prev_cell)
+        return (prev_cell, False)
+    else:
+        assert False
+
+
 class Maze:
     def __init__(self, size: Tuple[int, int]):
         self.cols = size[0]
         self.rows = size[1]
         self.maze = ""
+        # Each cell represents a direction to the cell before them
         paths = [[[None] * size[0]] * size[1]][0]
         print(paths)
         cells = size[0] * size[1]
         reached = 1
         curr_cell = (0, 0)
         while reached < cells:
-            possible_directions = [1, 2, 3, 4]
-            random.shuffle(possible_directions)
             # 0: DOWN
             # 1: UP
             # 2: RIGHT
             # 3: LEFT
-            next_cell = None
-            curr_cell_direction: Optional[int] = get_cell_in_grid(paths, curr_cell)
-            for direction in possible_directions:
-                possible_next_cell = move_index_by_direction(curr_cell, direction)
-
-                is_connected = get_cell_in_grid(paths, possible_next_cell) is None
-                if not is_connected:
-                    next_cell = possible_next_cell
-                    break
-
-            if next_cell != None:
-                # The current cell **shouldn't** be able to be both not connected and have a possible direction at the same time
-                if curr_cell_direction != None:
-                    next_cell = move_index_by_direction(curr_cell, curr_cell_direction)
-
-                curr_cell = next_cell
+            (next_cell, is_reached) = get_next_cell_in_grid(curr_cell, paths)
+            curr_cell = next_cell
+            if is_reached:
+                reached += 1
+                # TODO: Set the direction of a cell to the cell it was from if it is reached
 
     def get(self, col: int, row: int) -> str:
         if row >= self.rows:
