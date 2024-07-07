@@ -79,7 +79,7 @@ def move_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int
 def get_next_cell_in_grid(
     curr_cell: Tuple[int, int], grid
 ) -> Tuple[Tuple[int, int], bool]:
-    possible_directions = [1, 2, 3, 4]
+    possible_directions = [0, 1, 2, 3]
     random.shuffle(possible_directions)
     next_cell = None
     for direction in possible_directions:
@@ -118,6 +118,7 @@ class Maze:
             # 2: RIGHT
             # 3: LEFT
             (next_cell, is_reached) = get_next_cell_in_grid(curr_cell, paths)
+            print(next_cell)
             curr_cell = next_cell
             if is_reached:
                 reached += 1
