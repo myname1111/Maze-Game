@@ -1,7 +1,7 @@
 import random
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Optional, Self, Tuple
+from typing import Any, Optional, Self, Tuple
 
 import pygame
 from pygame import font
@@ -64,6 +64,7 @@ def get_cell_in_grid(paths, index: Tuple[int, int]):
 
 
 def move_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int, int]:
+    # print(index)
     if direction == 0:
         return (index[0], index[1] - 1)
     elif direction == 1:
@@ -76,27 +77,69 @@ def move_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int
         assert False
 
 
+def unwrap[T](input_val: Optional[T]) -> T:
+    if input_val is not None:
+        return input_val
+    else:
+        assert False
+
+
+def is_valid_cell_to_go_to(grid, cell_in_direction: Tuple[int, int]) -> bool:
+    if cell_in_direction[0] < 0:
+        return False
+    if cell_in_direction[1] < 0:
+        return False
+
+    try:
+        is_connected = get_next_cell_in_grid(grid, cell_in_direction) is not None
+    except IndexError:
+        return False
+
+    return is_connected
+
+
 def get_next_cell_in_grid(
     curr_cell: Tuple[int, int], grid
-) -> Tuple[Tuple[int, int], bool]:
-    possible_directions = [1, 2, 3, 4]
+) -> Tuple[Tuple[int, int], int | None]:
+    print("Called")
+    possible_directions = [0, 1, 2, 3]
     random.shuffle(possible_directions)
+    print(possible_directions, "possible_directions")
     next_cell = None
+    new_cell_direction = None
     for direction in possible_directions:
+        print(direction, "dir")
+        print(curr_cell, "this")
         cell_in_direction = move_index_by_direction(curr_cell, direction)
+        print(is_valid_cell_to_go_to(grid, cell_in_direction), "will it break")
+        print(cell_in_direction, "cell_in_direction")
+        print("test")
 
-        is_connected = get_cell_in_grid(grid, cell_in_direction) is not None
-        if not is_connected:
+        if is_valid_cell_to_go_to(grid, cell_in_direction):
+            print("WE BROKE THE LOOP")
             next_cell = cell_in_direction
+            new_cell_direction = direction
             break
 
     if next_cell is not None:
-        return (next_cell, True)
+        return (next_cell, new_cell_direction)
 
     dir_towards_prev_cell: Optional[int] = get_cell_in_grid(grid, curr_cell)
-    if dir_towards_prev_cell is not None:
-        prev_cell = move_index_by_direction(curr_cell, dir_towards_prev_cell)
-        return (prev_cell, False)
+    dir_towards_prev_cell = unwrap(dir_towards_prev_cell)
+    prev_cell = move_index_by_direction(curr_cell, dir_towards_prev_cell)
+
+    return (prev_cell, new_cell_direction)
+
+
+def get_opposite_direction(dir: int) -> int:
+    if dir == 0:
+        return 1
+    elif dir == 1:
+        return 0
+    elif dir == 2:
+        return 3
+    elif dir == 3:
+        return 2
     else:
         assert False
 
@@ -107,7 +150,8 @@ class Maze:
         self.rows = size[1]
         self.maze = ""
         # Each cell represents a direction to the cell before them
-        paths = [[[None] * size[0]] * size[1]][0]
+        # Any is not preferable, maybe a bug with linter?
+        paths: list[list[Any]] = [[[None] * size[0]] * size[1]][0]
         print(paths)
         cells = size[0] * size[1]
         reached = 1
@@ -117,11 +161,19 @@ class Maze:
             # 1: UP
             # 2: RIGHT
             # 3: LEFT
-            (next_cell, is_reached) = get_next_cell_in_grid(curr_cell, paths)
+            print(curr_cell, "curr_cell")
+            (next_cell, new_cell_direction) = get_next_cell_in_grid(curr_cell, paths)
+            print(next_cell, "next_cell")
+            # print(next_cell)
+            is_reached_new_cell = new_cell_direction is not None
             curr_cell = next_cell
-            if is_reached:
+            if is_reached_new_cell:
                 reached += 1
+                print(reached, "a")
+                direction_towards_prev_cell = get_opposite_direction(new_cell_direction)
+                paths[curr_cell[0]][curr_cell[1]] = direction_towards_prev_cell
                 # TODO: Set the direction of a cell to the cell it was from if it is reached
+        print(paths)
 
     def get(self, col: int, row: int) -> str:
         if row >= self.rows:
