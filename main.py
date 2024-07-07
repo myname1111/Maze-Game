@@ -101,22 +101,14 @@ def is_valid_cell_to_go_to(grid, cell_in_direction: Tuple[int, int]) -> bool:
 def get_next_cell_in_grid(
     curr_cell: Tuple[int, int], grid
 ) -> Tuple[Tuple[int, int], int | None]:
-    print("Called")
     possible_directions = [0, 1, 2, 3]
     random.shuffle(possible_directions)
-    print(possible_directions, "possible_directions")
     next_cell = None
     new_cell_direction = None
     for direction in possible_directions:
-        print(direction, "dir")
-        print(curr_cell, "this")
         cell_in_direction = move_index_by_direction(curr_cell, direction)
-        print(is_valid_cell_to_go_to(grid, cell_in_direction), "will it break")
-        print(cell_in_direction, "cell_in_direction")
-        print("test")
 
         if is_valid_cell_to_go_to(grid, cell_in_direction):
-            print("WE BROKE THE LOOP")
             next_cell = cell_in_direction
             new_cell_direction = direction
             break
@@ -163,13 +155,12 @@ class Maze:
             # 3: LEFT
             print(curr_cell, "curr_cell")
             (next_cell, new_cell_direction) = get_next_cell_in_grid(curr_cell, paths)
-            print(next_cell, "next_cell")
             # print(next_cell)
             is_reached_new_cell = new_cell_direction is not None
             curr_cell = next_cell
             if is_reached_new_cell:
                 reached += 1
-                print(reached, "a")
+                print(reached, "reached")
                 direction_towards_prev_cell = get_opposite_direction(new_cell_direction)
                 paths[curr_cell[0]][curr_cell[1]] = direction_towards_prev_cell
                 # TODO: Set the direction of a cell to the cell it was from if it is reached
