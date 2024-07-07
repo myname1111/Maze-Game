@@ -91,7 +91,7 @@ def is_valid_cell_to_go_to(grid, cell_in_direction: Tuple[int, int]) -> bool:
         return False
 
     try:
-        is_connected = get_next_cell_in_grid(grid, cell_in_direction) is not None
+        is_connected = get_cell_in_grid(grid, cell_in_direction) is not None
     except IndexError:
         return False
 
