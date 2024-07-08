@@ -1,7 +1,7 @@
 import random
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Optional, Self, Tuple
+from typing import Optional, Self, Tuple
 
 import pygame
 from pygame import font
@@ -33,6 +33,9 @@ class Vec2:
 
     def __floordiv__(self, other: Self):
         return Vec2(self.x // other.x, self.y // other.y)
+
+    def __neg__(self):
+        return Vec2(-self.x, -self.y)
 
 
 def vec2_from_int_tuple(tup: Tuple[int | float, int | float]) -> Vec2:
@@ -267,13 +270,13 @@ class MazeSprite:
         )
         return [self.maze.get(index[0], index[1]) for index in indicies]
 
-    def render(self, screen: pygame.Surface):
+    def render(self, screen: pygame.Surface, offset: Vec2):
         for idx, cell in enumerate(self.maze.maze):
             x = idx % self.maze.cols
             y = idx // self.maze.cols
 
             if cell in self.cell_image:
-                screen.blit(self.cell_image[cell], self.from_index((x, y)).to_tuple())
+                screen.blit(self.cell_image[cell], (self.from_index((x, y)) + offset).to_tuple())
 
 
 class GameState(IntEnum):
@@ -339,7 +342,7 @@ class Player:
         if state == GameState.LOSE:
             return
 
-        screen.blit(self.image, self.position.to_tuple())
+        screen.blit(self.image, (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
 
 
 def get_list_of_indicies_inside_grid_index_bounding_box(
@@ -360,15 +363,15 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
 pygame.init()
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
-player = Player(speed=0.5, size=Vec2(16, 16), position=Vec2(32, 0))
+player = Player(speed=0.5, size=Vec2(32, 32), position=Vec2(64, 0))
 keys = Keys({})
 maze = MazeSprite(
-    Vec2(32, 32),
+    Vec2(64, 64),
     {
         "#": pygame.image.load(f"{dir}/imgs/wall.png"),
         "X": pygame.image.load(f"{dir}/imgs/win.png"),
     },
-    Maze((24, 24)),
+    Maze((8, 8)),
     Vec2(0, 0),
 )
 
@@ -387,7 +390,7 @@ while running:
 
     player.on_key(keys, game_state)
     player.render(window, game_state)
-    maze.render(window)
+    maze.render(window, -(player.position - Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
 
     game_state = player.collision_detection(maze, game_state)
 
