@@ -157,6 +157,7 @@ def init_grid(x: int, y: int) -> list[list[Optional[int]]]:
 
 
 def create_paths(size: Tuple[int, int]) -> list[list[Optional[int]]]:
+    # Each cell represents a direction to the cell before them
     paths = init_grid(size[0], size[1])
     reached = 0
     curr_cell = (0, 0)
@@ -178,14 +179,53 @@ def create_paths(size: Tuple[int, int]) -> list[list[Optional[int]]]:
     return paths
 
 
+def init_maze(size: Tuple[int, int]) -> list[list[str]]:
+    maze = []
+    for x in range(size[0] * 2 + 1):
+        row = []
+        for y in range(size[1] * 2 + 1):
+            row.append(" " if x % 2 == 1 and y % 2 == 1 else "#")
+        maze.append(row)
+    return maze
+
+def move_grid_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int, int]:
+    # print(index)
+    if direction == 0:
+        return (index[0], index[1] + 1)
+    elif direction == 1:
+        return (index[0], index[1] - 1)
+    elif direction == 2:
+        return (index[0] + 1, index[1])
+    elif direction == 3:
+        return (index[0] - 1, index[1])
+    else:
+        assert False
+
+def create_walls_from_paths(
+    size: Tuple[int, int], paths: list[list[Optional[int]]]
+) -> str:
+    maze = init_maze(size)
+    for y, row in enumerate(paths):
+        for x, cell in enumerate(row):
+            if cell is None:
+                continue
+
+            (x_new, y_new) = move_grid_index_by_direction((x * 2 + 1, y * 2 + 1), cell)
+            
+            maze[y_new][x_new] = ' '
+
+
+    maze[0][1] = " "
+    maze[1][size[0] * 2] = " "
+    return "".join(["".join(row) for row in maze])
+
+
 class Maze:
     def __init__(self, size: Tuple[int, int]):
-        self.cols = size[0]
-        self.rows = size[1]
-        self.maze = ""
-        # Each cell represents a direction to the cell before them
+        self.cols = size[0] * 2 + 1
+        self.rows = size[1] * 2 + 1
         paths = create_paths(size)
-        print(paths)
+        self.maze = create_walls_from_paths(size, paths)
 
     def get(self, col: int, row: int) -> str:
         if row >= self.rows:
@@ -320,15 +360,15 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
 pygame.init()
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
-player = Player(speed=0.5, size=Vec2(32, 32))
+player = Player(speed=0.5, size=Vec2(16, 16), position=Vec2(32, 0))
 keys = Keys({})
 maze = MazeSprite(
-    Vec2(64, 64),
+    Vec2(32, 32),
     {
         "#": pygame.image.load(f"{dir}/imgs/wall.png"),
         "X": pygame.image.load(f"{dir}/imgs/win.png"),
     },
-    Maze((8, 8)),
+    Maze((24, 24)),
     Vec2(0, 0),
 )
 
