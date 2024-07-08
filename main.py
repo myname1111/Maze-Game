@@ -59,8 +59,8 @@ class Keys:
             return False
 
 
-def get_cell_in_grid(paths, index: Tuple[int, int]):
-    return paths[index[0]][index[1]]
+def get_cell_in_grid(paths: list[list[Optional[int]]], index: Tuple[int, int]):
+    return paths[index[1]][index[0]]
 
 
 def move_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int, int]:
@@ -70,9 +70,9 @@ def move_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int
     elif direction == 1:
         return (index[0], index[1] + 1)
     elif direction == 2:
-        return (index[0] + 1, index[1])
-    elif direction == 3:
         return (index[0] - 1, index[1])
+    elif direction == 3:
+        return (index[0] + 1, index[1])
     else:
         assert False
 
@@ -84,10 +84,17 @@ def unwrap[T](input_val: Optional[T]) -> T:
         assert False
 
 
-def is_valid_cell_to_go_to(grid, cell_in_direction: Tuple[int, int]) -> bool:
+def is_valid_cell_to_go_to(
+    grid: list[list[Optional[int]]], cell_in_direction: Tuple[int, int]
+) -> bool:
+    # If out of range
     if cell_in_direction[0] < 0:
         return False
     if cell_in_direction[1] < 0:
+        return False
+
+    is_root = cell_in_direction[0] == 0 and cell_in_direction[1] == 0
+    if is_root:
         return False
 
     try:
@@ -95,14 +102,15 @@ def is_valid_cell_to_go_to(grid, cell_in_direction: Tuple[int, int]) -> bool:
     except IndexError:
         return False
 
-    return is_connected
+    return not is_connected
 
 
 def get_next_cell_in_grid(
-    curr_cell: Tuple[int, int], grid
+    curr_cell: Tuple[int, int], grid: list[list[Optional[int]]]
 ) -> Tuple[Tuple[int, int], int | None]:
     possible_directions = [0, 1, 2, 3]
     random.shuffle(possible_directions)
+    # print(possible_directions, "possible_directions")
     next_cell = None
     new_cell_direction = None
     for direction in possible_directions:
@@ -114,13 +122,15 @@ def get_next_cell_in_grid(
             break
 
     if next_cell is not None:
+        # In this case there is a next cell to go to
         return (next_cell, new_cell_direction)
 
+    # Else, we go to the previous cell
     dir_towards_prev_cell: Optional[int] = get_cell_in_grid(grid, curr_cell)
-    dir_towards_prev_cell = unwrap(dir_towards_prev_cell)
+    dir_towards_prev_cell = get_opposite_direction(unwrap(dir_towards_prev_cell))
     prev_cell = move_index_by_direction(curr_cell, dir_towards_prev_cell)
 
-    return (prev_cell, new_cell_direction)
+    return (prev_cell, None)
 
 
 def get_opposite_direction(dir: int) -> int:
@@ -136,34 +146,45 @@ def get_opposite_direction(dir: int) -> int:
         assert False
 
 
+def init_grid(x: int, y: int) -> list[list[Optional[int]]]:
+    out = []
+    for _ in range(0, y):
+        row: list[Optional[int]] = []
+        for _ in range(0, x):
+            row.append(None)
+        out.append(row)
+    return out
+
+
+def create_paths(size: Tuple[int, int]) -> list[list[Optional[int]]]:
+    paths = init_grid(size[0], size[1])
+    reached = 0
+    curr_cell = (0, 0)
+    while True:
+        # 0: DOWN
+        # 1: UP
+        # 2: RIGHT
+        # 3: LEFT
+        new = get_next_cell_in_grid(curr_cell, paths)
+        (next_cell, new_cell_direction) = new
+        is_reached_new_cell = new_cell_direction is not None
+        curr_cell = next_cell
+        if is_reached_new_cell:
+            reached += 1
+            paths[curr_cell[1]][curr_cell[0]] = new_cell_direction
+        if curr_cell == (0, 0):
+            break
+
+    return paths
+
+
 class Maze:
     def __init__(self, size: Tuple[int, int]):
         self.cols = size[0]
         self.rows = size[1]
         self.maze = ""
         # Each cell represents a direction to the cell before them
-        # Any is not preferable, maybe a bug with linter?
-        paths: list[list[Any]] = [[[None] * size[0]] * size[1]][0]
-        print(paths)
-        cells = size[0] * size[1]
-        reached = 1
-        curr_cell = (0, 0)
-        while reached < cells:
-            # 0: DOWN
-            # 1: UP
-            # 2: RIGHT
-            # 3: LEFT
-            print(curr_cell, "curr_cell")
-            (next_cell, new_cell_direction) = get_next_cell_in_grid(curr_cell, paths)
-            # print(next_cell)
-            is_reached_new_cell = new_cell_direction is not None
-            curr_cell = next_cell
-            if is_reached_new_cell:
-                reached += 1
-                print(reached, "reached")
-                direction_towards_prev_cell = get_opposite_direction(new_cell_direction)
-                paths[curr_cell[0]][curr_cell[1]] = direction_towards_prev_cell
-                # TODO: Set the direction of a cell to the cell it was from if it is reached
+        paths = create_paths(size)
         print(paths)
 
     def get(self, col: int, row: int) -> str:
