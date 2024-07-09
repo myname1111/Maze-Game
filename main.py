@@ -10,6 +10,10 @@ dir = "E:/Python/maze_game_test"
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 
+# 0: DOWN
+# 1: UP
+# 2: RIGHT
+# 3: LEFT
 
 @dataclass
 class Vec2:
@@ -165,10 +169,6 @@ def create_paths(size: Tuple[int, int]) -> list[list[Optional[int]]]:
     reached = 0
     curr_cell = (0, 0)
     while True:
-        # 0: DOWN
-        # 1: UP
-        # 2: RIGHT
-        # 3: LEFT
         new = get_next_cell_in_grid(curr_cell, paths)
         (next_cell, new_cell_direction) = new
         is_reached_new_cell = new_cell_direction is not None
@@ -249,48 +249,48 @@ def get_depth(paths: list[list[Optional[int]]], size: Tuple[int, int]) -> list[l
         out.append(out_row)
     return out
 
-def pathfind(pos1: Tuple[int, int], pos2: Tuple[int, int], paths: list[list[Optional[int]]], depth: list[list[int]]) -> list[int]:
-    out = []
-    depth1 = depth[pos1[1]][pos1[0]]
-    depth2 = depth[pos2[1]][pos2[0]]
-    min_depth = min(depth1, depth2)
-    curr_pos1 = pos1
-    curr_pos2 = pos2
-    directions_to_1 = []
-    directions_to_2 = []
-    if depth1 > min_depth:
-        diff = depth1 - min_depth
-        (curr_pos1, directions_to_1) = many_step_back(pos1, paths, diff)
-    if depth2 > min_depth:
-        diff = depth2 - min_depth
-        (curr_pos2, directions_to_2) = many_step_back(pos2, paths, diff)
-
-    while curr_pos1 != curr_pos2:
-        new1 = step_back(curr_pos1, paths)
-        if new1 is not None:
-            curr_pos1 = new1[0]
-            directions_to_1.append(new1[1])
-        
-        new2 = step_back(curr_pos2, paths)
-        if new2 is not None:
-            curr_pos2 = new2[0]
-            directions_to_2.append(new2[1])
-
-    towards_lca = directions_to_1
-    from_lca = [get_opposite_direction(dir) for dir in reversed(directions_to_2)]
-    out = towards_lca + from_lca
-
-    return out
 
 class Maze:
     def __init__(self, size: Tuple[int, int]):
         self.cols = size[0] * 2 + 1
         self.rows = size[1] * 2 + 1
-        paths = create_paths(size)
-        depth = get_depth(paths, size)
-        print(pathfind((2, 0), (2, 5), paths, depth))
-        self.maze = create_walls_from_paths(size, paths)
+        self.paths = create_paths(size)
+        self.depth = get_depth(self.paths, size)
+        print(self.pathfind((2, 0), (2, 5)))
+        self.maze = create_walls_from_paths(size, self.paths)
 
+    def pathfind(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> list[int]:
+        out = []
+        depth1 = self.depth[pos1[1]][pos1[0]]
+        depth2 = self.depth[pos2[1]][pos2[0]]
+        min_depth = min(depth1, depth2)
+        curr_pos1 = pos1
+        curr_pos2 = pos2
+        directions_to_1 = []
+        directions_to_2 = []
+        if depth1 > min_depth:
+            diff = depth1 - min_depth
+            (curr_pos1, directions_to_1) = many_step_back(pos1, self.paths, diff)
+        if depth2 > min_depth:
+            diff = depth2 - min_depth
+            (curr_pos2, directions_to_2) = many_step_back(pos2, self.paths, diff)
+
+        while curr_pos1 != curr_pos2:
+            new1 = step_back(curr_pos1, self.paths)
+            if new1 is not None:
+                curr_pos1 = new1[0]
+                directions_to_1.append(new1[1])
+            
+            new2 = step_back(curr_pos2, self.paths)
+            if new2 is not None:
+                curr_pos2 = new2[0]
+                directions_to_2.append(new2[1])
+
+        towards_lca = list(reversed(directions_to_1))
+        from_lca = [get_opposite_direction(dir) for dir in directions_to_2]
+        out = from_lca + towards_lca
+
+        return out
     def get(self, col: int, row: int) -> str:
         if row >= self.rows:
             return " "
@@ -425,25 +425,48 @@ class Enemy:
         self,
         position: Optional[Vec2] = None,
         size: Optional[Vec2] = None,
-        speed: float = 1):
+        speed: float = 1,
+        moves: Optional[list[int]] = None):
         self.position = Vec2(0, 0) if position is None else position
         self.image = pygame.image.load(f"{dir}/imgs/enemy.png")
         if size is not None:
             self.image = pygame.transform.scale(self.image, size.to_tuple())
         self.speed = speed
+        self.moves = [] if moves is None else moves
+        self.move_distance = 0
+
+    def move(self, direction: int):
+        if direction == 0:
+            self.position.y += self.speed
+        elif direction == 1:
+            self.position.y -= self.speed
+        elif direction == 2:
+            self.position.x += self.speed
+        elif direction == 3:
+            self.position.x -= self.speed
+
+    def make_moves(self, distance: int):
+        if len(self.moves) == 0:
+            return
+
+        direction = self.moves[-1]
+        self.move(direction)
+        self.move_distance += self.speed
+        
+        if self.move_distance > distance:
+            self.moves.pop()
+            self.move_distance = 0
 
     def render(self, screen: pygame.Surface, offset: Vec2):
         screen.blit(self.image, (self.position + offset).to_tuple())
 
-
+CELL_SIZE = 32
 pygame.init()
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
-player = Player(speed=0.5, size=Vec2(32, 32), position=Vec2(64, 64))
-enemy = Enemy(speed=0.5, size=Vec2(32, 32), position=Vec2(64, 64))
 keys = Keys({})
 maze = MazeSprite(
-    Vec2(64, 64),
+    Vec2(CELL_SIZE, CELL_SIZE),
     {
         "#": pygame.image.load(f"{dir}/imgs/wall.png"),
         "X": pygame.image.load(f"{dir}/imgs/win.png"),
@@ -451,6 +474,8 @@ maze = MazeSprite(
     Maze((16, 16)),
     Vec2(0, 0),
 )
+player = Player(speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE))
+enemy = Enemy(speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE), moves=(maze.maze.pathfind((0, 0), (15, 0))))
 
 font.init()
 font = font.Font(None, 70)
@@ -465,8 +490,10 @@ while running:
             running = False
         keys.update(event)
 
-    offset = -player.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+    offset = -enemy.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+    # offset = Vec2(0, 0)
     player.on_key(keys, game_state)
+    enemy.make_moves(CELL_SIZE * 2)
     player.render(window, game_state)
     enemy.render(window, offset)
     maze.render(window, offset)
