@@ -4,7 +4,8 @@
     - [x] Mark the parent/cell before each cell
     - [x] Traverse the maze one more time to make the walls
   - [ ] Make AI
-    - [ ] Make maze pathfinding algorithm
+    - [x] Make maze pathfinding algorithm
     - [ ] Follow path to player
   - [ ] Make documentation
+  - [ ] Make health system
   - [ ] Get better textures

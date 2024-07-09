@@ -66,7 +66,7 @@ def get_cell_in_grid(paths: list[list[Optional[int]]], index: Tuple[int, int]):
     return paths[index[1]][index[0]]
 
 
-def move_index_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int, int]:
+def move_position_by_direction(index: Tuple[int, int], direction: int) -> Tuple[int, int]:
     # print(index)
     if direction == 0:
         return (index[0], index[1] - 1)
@@ -117,7 +117,7 @@ def get_next_cell_in_grid(
     next_cell = None
     new_cell_direction = None
     for direction in possible_directions:
-        cell_in_direction = move_index_by_direction(curr_cell, direction)
+        cell_in_direction = move_position_by_direction(curr_cell, direction)
 
         if is_valid_cell_to_go_to(grid, cell_in_direction):
             next_cell = cell_in_direction
@@ -131,7 +131,7 @@ def get_next_cell_in_grid(
     # Else, we go to the previous cell
     dir_towards_prev_cell: Optional[int] = get_cell_in_grid(grid, curr_cell)
     dir_towards_prev_cell = get_opposite_direction(unwrap(dir_towards_prev_cell))
-    prev_cell = move_index_by_direction(curr_cell, dir_towards_prev_cell)
+    prev_cell = move_position_by_direction(curr_cell, dir_towards_prev_cell)
 
     return (prev_cell, None)
 
@@ -222,12 +222,74 @@ def create_walls_from_paths(
     maze[1][size[0] * 2] = " "
     return "".join(["".join(row) for row in maze])
 
+def step_back(pos: Tuple[int, int], paths: list[list[Optional[int]]]) -> Tuple[Tuple[int, int], int] | None:
+    direction = paths[pos[1]][pos[0]]
+    if direction is None:
+        return None
+
+    new = move_grid_index_by_direction(pos, direction)
+    return (new, direction)
+
+def many_step_back(pos: Tuple[int, int], paths: list[list[Optional[int]]], count: int) -> Tuple[Tuple[int, int], list[int]]:
+    curr_pos = pos
+    out = []
+    for _ in range(count):
+        new = step_back(curr_pos, paths)
+        if new is None:
+            return (curr_pos, out)
+        curr_pos = new[0]
+        out.append(new[1])
+    return (curr_pos, out)
+
+def get_depth(paths: list[list[Optional[int]]], size: Tuple[int, int]) -> list[list[int]]:
+    out = []
+    for (y, row) in enumerate(paths):
+        out_row = []
+        for (x, _) in enumerate(row):
+            out_row.append(len(many_step_back((x, y), paths, size[0] * size[1])[1]))
+        out.append(out_row)
+    return out
+
+def pathfind(pos1: Tuple[int, int], pos2: Tuple[int, int], paths: list[list[Optional[int]]], depth: list[list[int]]) -> list[int]:
+    out = []
+    depth1 = depth[pos1[1]][pos1[0]]
+    depth2 = depth[pos2[1]][pos2[0]]
+    min_depth = min(depth1, depth2)
+    curr_pos1 = pos1
+    curr_pos2 = pos2
+    directions_to_1 = []
+    directions_to_2 = []
+    if depth1 > min_depth:
+        diff = depth1 - min_depth
+        (curr_pos1, directions_to_1) = many_step_back(pos1, paths, diff)
+    if depth2 > min_depth:
+        diff = depth2 - min_depth
+        (curr_pos2, directions_to_2) = many_step_back(pos2, paths, diff)
+
+    while curr_pos1 != curr_pos2:
+        new1 = step_back(curr_pos1, paths)
+        if new1 is not None:
+            curr_pos1 = new1[0]
+            directions_to_1.append(new1[1])
+        
+        new2 = step_back(curr_pos2, paths)
+        if new2 is not None:
+            curr_pos2 = new2[0]
+            directions_to_2.append(new2[1])
+
+    towards_lca = directions_to_1
+    from_lca = [get_opposite_direction(dir) for dir in reversed(directions_to_2)]
+    out = towards_lca + from_lca
+
+    return out
 
 class Maze:
     def __init__(self, size: Tuple[int, int]):
         self.cols = size[0] * 2 + 1
         self.rows = size[1] * 2 + 1
         paths = create_paths(size)
+        depth = get_depth(paths, size)
+        print(pathfind((2, 0), (2, 5), paths, depth))
         self.maze = create_walls_from_paths(size, paths)
 
     def get(self, col: int, row: int) -> str:
