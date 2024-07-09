@@ -420,11 +420,27 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
         Vec2(pos.x + size.x, pos.y + size.y),
     )
 
+class Enemy:
+    def __init__(
+        self,
+        position: Optional[Vec2] = None,
+        size: Optional[Vec2] = None,
+        speed: float = 1):
+        self.position = Vec2(0, 0) if position is None else position
+        self.image = pygame.image.load(f"{dir}/imgs/enemy.png")
+        if size is not None:
+            self.image = pygame.transform.scale(self.image, size.to_tuple())
+        self.speed = speed
+
+    def render(self, screen: pygame.Surface, offset: Vec2):
+        screen.blit(self.image, (self.position + offset).to_tuple())
+
 
 pygame.init()
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
 player = Player(speed=0.5, size=Vec2(32, 32), position=Vec2(64, 64))
+enemy = Enemy(speed=0.5, size=Vec2(32, 32), position=Vec2(64, 64))
 keys = Keys({})
 maze = MazeSprite(
     Vec2(64, 64),
@@ -432,7 +448,7 @@ maze = MazeSprite(
         "#": pygame.image.load(f"{dir}/imgs/wall.png"),
         "X": pygame.image.load(f"{dir}/imgs/win.png"),
     },
-    Maze((8, 8)),
+    Maze((16, 16)),
     Vec2(0, 0),
 )
 
@@ -449,9 +465,11 @@ while running:
             running = False
         keys.update(event)
 
+    offset = -player.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
     player.on_key(keys, game_state)
     player.render(window, game_state)
-    maze.render(window, -(player.position - Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+    enemy.render(window, offset)
+    maze.render(window, offset)
 
     game_state = player.collision_detection(maze, game_state)
 
