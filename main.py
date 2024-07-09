@@ -205,7 +205,7 @@ def move_grid_index_by_direction(index: Tuple[int, int], direction: int) -> Tupl
         assert False
 
 def create_walls_from_paths(
-    size: Tuple[int, int], paths: list[list[Optional[int]]]
+    size: Tuple[int, int], paths: list[list[Optional[int]]], win: str = "X"
 ) -> str:
     maze = init_maze(size)
     for y, row in enumerate(paths):
@@ -218,8 +218,7 @@ def create_walls_from_paths(
             maze[y_new][x_new] = ' '
 
 
-    maze[0][1] = " "
-    maze[1][size[0] * 2] = " "
+    maze[1][size[0] * 2] = win
     return "".join(["".join(row) for row in maze])
 
 def step_back(pos: Tuple[int, int], paths: list[list[Optional[int]]]) -> Tuple[Tuple[int, int], int] | None:
@@ -425,7 +424,7 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
 pygame.init()
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 running = True
-player = Player(speed=0.5, size=Vec2(32, 32), position=Vec2(64, 0))
+player = Player(speed=0.5, size=Vec2(32, 32), position=Vec2(64, 64))
 keys = Keys({})
 maze = MazeSprite(
     Vec2(64, 64),
