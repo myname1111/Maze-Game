@@ -322,6 +322,10 @@ class MazeSprite:
 
     def from_index(self, pos: Tuple[int, int]) -> Vec2:
         return Vec2(pos[0], pos[1]) * self.cell_size + self.offset
+    
+    def to_path_index(self, pos: Vec2) -> Tuple[int, int]:
+        sprite_grid_pos = maze.to_index(pos)
+        return (sprite_grid_pos[0] // 2, sprite_grid_pos[1] // 2)
 
     def collide_with_sprite(self, other_pos: Vec2, other_size: Vec2) -> list[str]:
         points = get_bounding_box(other_pos, other_size)
@@ -351,11 +355,21 @@ class GameState(IntEnum):
         else:
             return other
 
+def get_direction_from_offset(offset: Tuple[int, int]) -> Optional[int]:
+    if offset == (0, 1):
+        return 0
+    elif offset == (0, -1):
+        return 1
+    elif offset == (1, 0):
+        return 2
+    elif offset == (-1, 0):
+        return 3
 
 class Player:
 
     def __init__(
         self,
+        maze: MazeSprite,
         position: Optional[Vec2] = None,
         size: Optional[Vec2] = None,
         speed: float = 1,
@@ -365,8 +379,9 @@ class Player:
         if size is not None:
             self.image = pygame.transform.scale(self.image, size.to_tuple())
         self.speed = speed
+        self.path_grid_pos = maze.to_path_index(self.position)
 
-    def on_key(self, key: Keys, state: GameState):
+    def on_key(self, key: Keys, state: GameState, maze: MazeSprite) -> Optional[int]:
         if state == GameState.LOSE:
             return
 
@@ -378,6 +393,17 @@ class Player:
             self.position.y += self.speed
         if key.pressed(pygame.K_UP):
             self.position.y -= self.speed
+
+        new_path_grid_pos = maze.to_path_index(self.position)
+        if new_path_grid_pos == self.path_grid_pos:
+            return None
+
+        offset = (new_path_grid_pos[0] - self.path_grid_pos[0], new_path_grid_pos[1] - self.path_grid_pos[1])
+        direction = get_direction_from_offset(offset)
+        
+        self.path_grid_pos = new_path_grid_pos
+
+        return direction
 
     def collide_with_cell(self, cell: str, init_state: GameState) -> GameState:
         match cell:
@@ -421,6 +447,9 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
     )
 
 def push_to_direction_list(direction_list: list[int], direction: int) -> list[int]:
+    if len(direction_list) == 0:
+        return [direction]
+
     out = direction_list
     opposite = get_opposite_direction(direction)
     if direction_list[0] == opposite:
@@ -444,8 +473,7 @@ class Enemy:
         self.moves = [] if moves is None else moves
         self.moved_distance = 0
         self.distance_to_move = distance
-        sprite_grid_pos = maze.to_index(self.position)
-        self.path_grid_pos = (sprite_grid_pos[0] // 2, sprite_grid_pos[1] // 2)
+        self.path_grid_pos = maze.to_path_index(self.position)
         self.offset = position
 
     def move(self, direction: int):
@@ -458,7 +486,7 @@ class Enemy:
         elif direction == 3:
             self.position.x -= self.speed
 
-    def make_moves(self, cell_size):
+    def make_moves(self, cell_size: int):
         if len(self.moves) == 0:
             return
 
@@ -495,8 +523,9 @@ maze = MazeSprite(
     Maze((16, 16)),
     Vec2(0, 0),
 )
-player = Player(speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE))
-enemy = Enemy(CELL_SIZE * 2, maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE), moves=(maze.maze.pathfind((0, 0), (15, 0))))
+player = Player(maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE))
+# enemy = Enemy(CELL_SIZE * 2, maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE), moves=(maze.maze.pathfind((0, 0), (15, 0))))
+enemy = Enemy(CELL_SIZE * 2, maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE))
 
 font.init()
 font = font.Font(None, 70)
@@ -511,8 +540,10 @@ while running:
             running = False
         keys.update(event)
 
-    offset = -enemy.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-    player.on_key(keys, game_state)
+    offset = -player.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+    direction = player.on_key(keys, game_state, maze)
+    if direction is not None:
+        enemy.add_direction(direction)
     enemy.make_moves(CELL_SIZE)
     player.render(window, game_state)
     enemy.render(window, offset)
