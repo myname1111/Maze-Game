@@ -423,6 +423,8 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
 class Enemy:
     def __init__(
         self,
+        distance: int,
+        maze: MazeSprite,
         position: Optional[Vec2] = None,
         size: Optional[Vec2] = None,
         speed: float = 1,
@@ -433,7 +435,11 @@ class Enemy:
             self.image = pygame.transform.scale(self.image, size.to_tuple())
         self.speed = speed
         self.moves = [] if moves is None else moves
-        self.move_distance = 0
+        self.moved_distance = 0
+        self.distance_to_move = distance
+        sprite_grid_pos = maze.to_index(self.position)
+        self.path_grid_pos = (sprite_grid_pos[0] // 2, sprite_grid_pos[1] // 2)
+        self.offset = position
 
     def move(self, direction: int):
         if direction == 0:
@@ -445,17 +451,22 @@ class Enemy:
         elif direction == 3:
             self.position.x -= self.speed
 
-    def make_moves(self, distance: int):
+    def make_moves(self, cell_size):
         if len(self.moves) == 0:
             return
 
         direction = self.moves[-1]
         self.move(direction)
-        self.move_distance += self.speed
+        self.moved_distance += self.speed
         
-        if self.move_distance > distance:
-            self.moves.pop()
-            self.move_distance = 0
+        if self.moved_distance < self.distance_to_move:
+            return None
+
+        self.path_grid_pos = move_grid_index_by_direction(self.path_grid_pos, direction)
+        sprite_grid_pos = (self.path_grid_pos[0] * 2 + 1, self.path_grid_pos[1] * 2 + 1)
+        self.position = vec2_from_int_tuple(sprite_grid_pos) * Vec2(cell_size, cell_size)
+        self.moves.pop()
+        self.moved_distance = 0
 
     def render(self, screen: pygame.Surface, offset: Vec2):
         screen.blit(self.image, (self.position + offset).to_tuple())
@@ -475,7 +486,7 @@ maze = MazeSprite(
     Vec2(0, 0),
 )
 player = Player(speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE))
-enemy = Enemy(speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE), moves=(maze.maze.pathfind((0, 0), (15, 0))))
+enemy = Enemy(CELL_SIZE * 2, maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE), moves=(maze.maze.pathfind((0, 0), (15, 0))))
 
 font.init()
 font = font.Font(None, 70)
@@ -491,9 +502,8 @@ while running:
         keys.update(event)
 
     offset = -enemy.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-    # offset = Vec2(0, 0)
     player.on_key(keys, game_state)
-    enemy.make_moves(CELL_SIZE * 2)
+    enemy.make_moves(CELL_SIZE)
     player.render(window, game_state)
     enemy.render(window, offset)
     maze.render(window, offset)
