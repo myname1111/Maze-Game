@@ -420,6 +420,13 @@ def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
         Vec2(pos.x + size.x, pos.y + size.y),
     )
 
+def push_to_direction_list(direction_list: list[int], direction: int) -> list[int]:
+    out = direction_list
+    opposite = get_opposite_direction(direction)
+    if direction_list[0] == opposite:
+        return direction_list[1:]
+    return [direction] + out
+
 class Enemy:
     def __init__(
         self,
@@ -467,6 +474,9 @@ class Enemy:
         self.position = vec2_from_int_tuple(sprite_grid_pos) * Vec2(cell_size, cell_size)
         self.moves.pop()
         self.moved_distance = 0
+
+    def add_direction(self, new_direction: int):
+        self.moves = push_to_direction_list(self.moves, new_direction)
 
     def render(self, screen: pygame.Surface, offset: Vec2):
         screen.blit(self.image, (self.position + offset).to_tuple())
