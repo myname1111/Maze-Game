@@ -3,9 +3,8 @@
     - [x] Get next cell in traversal 
     - [x] Mark the parent/cell before each cell
     - [x] Traverse the maze one more time to make the walls
-  - [ ] Make AI
+  - [x] Make AI
     - [x] Make maze pathfinding algorithm
-    - [ ] Follow path to player
+    - [x] Follow path to player
   - [ ] Make documentation
-  - [ ] Make health system
   - [ ] Get better textures

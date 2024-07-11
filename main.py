@@ -324,7 +324,7 @@ class MazeSprite:
         return Vec2(pos[0], pos[1]) * self.cell_size + self.offset
     
     def to_path_index(self, pos: Vec2) -> Tuple[int, int]:
-        sprite_grid_pos = maze.to_index(pos)
+        sprite_grid_pos = self.to_index(pos)
         return (sprite_grid_pos[0] // 2, sprite_grid_pos[1] // 2)
 
     def collide_with_sprite(self, other_pos: Vec2, other_size: Vec2) -> list[str]:
@@ -400,7 +400,7 @@ class Player:
 
         offset = (new_path_grid_pos[0] - self.path_grid_pos[0], new_path_grid_pos[1] - self.path_grid_pos[1])
         direction = get_direction_from_offset(offset)
-        
+
         self.path_grid_pos = new_path_grid_pos
 
         return direction
@@ -509,53 +509,62 @@ class Enemy:
     def render(self, screen: pygame.Surface, offset: Vec2):
         screen.blit(self.image, (self.position + offset).to_tuple())
 
-CELL_SIZE = 32
-pygame.init()
-window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-running = True
-keys = Keys({})
-maze = MazeSprite(
-    Vec2(CELL_SIZE, CELL_SIZE),
-    {
-        "#": pygame.image.load(f"{dir}/imgs/wall.png"),
-        "X": pygame.image.load(f"{dir}/imgs/win.png"),
-    },
-    Maze((16, 16)),
-    Vec2(0, 0),
-)
-player = Player(maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE))
-# enemy = Enemy(CELL_SIZE * 2, maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE), moves=(maze.maze.pathfind((0, 0), (15, 0))))
-enemy = Enemy(CELL_SIZE * 2, maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE))
+def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]):
+    from pygame import font
 
-font.init()
-font = font.Font(None, 70)
-lose = font.render("LOSE", True, (241, 40, 12))
-win = font.render("WIN", True, (19, 232, 51))
-game_state = GameState.PLAY
-
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            print("quit game")
-            running = False
-        keys.update(event)
-
-    offset = -player.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-    direction = player.on_key(keys, game_state, maze)
-    if direction is not None:
-        enemy.add_direction(direction)
-    enemy.make_moves(CELL_SIZE)
-    player.render(window, game_state)
-    enemy.render(window, offset)
-    maze.render(window, offset)
-
-    game_state = player.collision_detection(maze, game_state)
-
-    if game_state == GameState.LOSE:
-        window.blit(lose, lose.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
-    if game_state == GameState.WIN:
-        window.blit(win, win.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
-
-    pygame.display.flip()
-
+    window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     window.fill((0, 0, 0))
+    running = True
+    keys = Keys({})
+    maze = MazeSprite(
+        Vec2(cell_size, cell_size),
+        {
+            "#": pygame.image.load(f"{dir}/imgs/wall.png"),
+            "X": pygame.image.load(f"{dir}/imgs/win.png"),
+        },
+        Maze(maze_size),
+        Vec2(0, 0),
+    )
+    player = Player(maze, speed=player_speed, size=Vec2(cell_size / 4, cell_size / 4), position=Vec2(cell_size, cell_size))
+    # enemy = Enemy(CELL_SIZE * 2, maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE), moves=(maze.maze.pathfind((0, 0), (15, 0))))
+    enemy = Enemy(cell_size * 2, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=Vec2(cell_size, cell_size))
+
+    font.init()
+    font = font.Font(None, 70)
+    lose = font.render("LOSE", True, (241, 40, 12))
+    win = font.render("WIN", True, (19, 232, 51))
+    game_state = GameState.PLAY
+    clock = pygame.time.Clock()
+    startup = pygame.time.get_ticks()
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                print("quit game")
+                running = False
+            keys.update(event)
+
+        now = pygame.time.get_ticks()
+        offset = -player.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        direction = player.on_key(keys, game_state, maze)
+        if direction is not None:
+            enemy.add_direction(direction)
+        if now - startup > 15_000:
+            enemy.make_moves(cell_size)
+        player.render(window, game_state)
+        enemy.render(window, offset)
+        maze.render(window, offset)
+
+        game_state = player.collision_detection(maze, game_state)
+
+        if game_state == GameState.LOSE:
+            window.blit(lose, lose.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+        if game_state == GameState.WIN:
+            window.blit(win, win.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+
+        pygame.display.flip()
+        clock.tick()
+        window.fill((0, 0, 0))
+
+pygame.init()
+level(64, 0.4, 0.5, (16, 16))
