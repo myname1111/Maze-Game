@@ -256,7 +256,7 @@ class Maze:
         self.rows = size[1] * 2 + 1
         self.paths = create_paths(size)
         self.depth = get_depth(self.paths, size)
-        print(self.pathfind((2, 0), (2, 5)))
+        print(self.pathfind((2, 0), (2, 1)))
         self.maze = create_walls_from_paths(size, self.paths)
 
     def pathfind(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> list[int]:
@@ -539,8 +539,8 @@ def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tu
         Vec2(0, 0),
     )
     player = Player(maze, speed=player_speed, size=Vec2(cell_size / 4, cell_size / 4), position=Vec2(cell_size, cell_size))
-    # enemy = Enemy(CELL_SIZE * 2, maze, speed=0.5, size=Vec2(CELL_SIZE / 2, CELL_SIZE / 2), position=Vec2(CELL_SIZE, CELL_SIZE), moves=(maze.maze.pathfind((0, 0), (15, 0))))
-    enemy = Enemy(cell_size * 2, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=Vec2(cell_size, cell_size))
+    enemy_position = (Vec2(maze_size[0] - 1, maze_size[1] - 1) * Vec2(2, 2) + Vec2(1, 1)) * Vec2(cell_size, cell_size)
+    enemy = Enemy(cell_size * 2, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=enemy_position, moves=maze.maze.pathfind((maze_size[0] - 1, maze_size[1] - 1), (0, 0)))
 
     font.init()
     font = font.Font(None, 70)
