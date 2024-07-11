@@ -378,6 +378,7 @@ class Player:
         self.image = pygame.image.load(f"{dir}/imgs/player.png")
         if size is not None:
             self.image = pygame.transform.scale(self.image, size.to_tuple())
+        self.size = self.image.get_size()
         self.speed = speed
         self.path_grid_pos = maze.to_path_index(self.position)
 
@@ -431,6 +432,9 @@ class Player:
 
         screen.blit(self.image, (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
 
+    def get_bounding_box(self) -> Tuple[Vec2, Vec2]:
+        return get_bounding_box(self.position, vec2_from_int_tuple(self.size))
+
 
 def get_list_of_indicies_inside_grid_index_bounding_box(
     start: Tuple[int, int], to: Tuple[int, int]
@@ -442,8 +446,8 @@ def get_list_of_indicies_inside_grid_index_bounding_box(
 
 def get_bounding_box(pos: Vec2, size: Vec2) -> Tuple[Vec2, Vec2]:
     return (
-        Vec2(pos.x, pos.y),
-        Vec2(pos.x + size.x, pos.y + size.y),
+        pos,
+        pos + size
     )
 
 def push_to_direction_list(direction_list: list[int], direction: int) -> list[int]:
@@ -469,6 +473,7 @@ class Enemy:
         self.image = pygame.image.load(f"{dir}/imgs/enemy.png")
         if size is not None:
             self.image = pygame.transform.scale(self.image, size.to_tuple())
+        self.size = self.image.get_size()
         self.speed = speed
         self.moves = [] if moves is None else moves
         self.moved_distance = 0
@@ -508,6 +513,14 @@ class Enemy:
 
     def render(self, screen: pygame.Surface, offset: Vec2):
         screen.blit(self.image, (self.position + offset).to_tuple())
+        
+    def get_bounding_box(self) -> Tuple[Vec2, Vec2]:
+        return get_bounding_box(self.position, vec2_from_int_tuple(self.size))
+
+def is_collide(bounding_box1: Tuple[Vec2, Vec2], bounding_box2: Tuple[Vec2, Vec2]):
+    will_x_collide = bounding_box1[0].x < bounding_box2[1].x and bounding_box2[0].x < bounding_box1[1].x
+    will_y_collide = bounding_box1[0].y < bounding_box2[1].y and bounding_box2[0].y < bounding_box1[1].y
+    return will_x_collide and will_y_collide
 
 def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]):
     from pygame import font
@@ -556,6 +569,11 @@ def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tu
         maze.render(window, offset)
 
         game_state = player.collision_detection(maze, game_state)
+
+        player_bb = player.get_bounding_box()
+        enemy_bb = enemy.get_bounding_box()
+        if is_collide(player_bb, enemy_bb):
+            game_state = GameState.LOSE
 
         if game_state == GameState.LOSE:
             window.blit(lose, lose.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
