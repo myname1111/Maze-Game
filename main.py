@@ -521,6 +521,15 @@ def is_collide(bounding_box1: Tuple[Vec2, Vec2], bounding_box2: Tuple[Vec2, Vec2
     will_y_collide = bounding_box1[0].y < bounding_box2[1].y and bounding_box2[0].y < bounding_box1[1].y
     return will_x_collide and will_y_collide
 
+class Button:
+    def __init__(self, img: pygame.Surface, text: pygame.Surface, size: Vec2, dest: Vec2, pos: Vec2):
+        self.img = pygame.transform.scale(img, size.to_tuple())
+        self.img.blit(text, (size / Vec2(2, 2) + dest).to_tuple())
+        self.pos = pos
+
+    def render(self, dest: pygame.Surface):
+        dest.blit(self.img, self.pos.to_tuple())
+
 def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]):
     from pygame import font
 
