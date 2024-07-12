@@ -6,8 +6,8 @@
   - [x] Make AI
     - [x] Make maze pathfinding algorithm
     - [x] Follow path to player
-  - [ ] Add level text
+  - [x] Add level text
   - [ ] Add lives system
-  - [ ] Get better textures
+  - [x] Get better textures
   - [ ] Make documentation
   - [ ] Create presentation
