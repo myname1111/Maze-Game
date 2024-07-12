@@ -554,7 +554,7 @@ def on_mouse_click(game_state: GameState, mouse: Tuple[int, int], win_button: Bu
 
     return GameState.PLAY
 
-def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]) -> Optional[GameState]:
+def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int], level: int) -> Optional[GameState]:
     from pygame import font
 
     window = pygame.display.set_mode((BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT), pygame.RESIZABLE)
@@ -581,6 +581,7 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
     font_big = font.Font(None, 70)
     lose = font_big.render("YOU LOST", True, (241, 40, 12))
     win = font_big.render("YOU WON", True, (19, 232, 51))
+    level_text = font_big.render(f"Level {level}", True, (255, 255, 255))
 
     font_medium = font.Font(None, 20)
     button_size = Vec2(128, 64)
@@ -642,6 +643,8 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
         if game_state == GameState.WIN:
             base_window.blit(win, win.get_rect(center=alert_center))
             continue_to_next_level.render(base_window)
+        
+        base_window.blit(level_text, (0, 0))
 
         transformed_window = pygame.transform.scale(base_window, (actual_width, actual_height))
         window.blit(transformed_window, (0, 0))
@@ -657,7 +660,7 @@ level = 1
 while True:
     maze_size = level + 4
     enemy_speed = 0.2 * level / (level + 10)
-    out = run_level(32, enemy_speed, 0.1, (maze_size, maze_size))
+    out = run_level(32, enemy_speed, 0.1, (maze_size, maze_size), level)
     if out is None:
         print("Quitting game")
         break
