@@ -256,7 +256,6 @@ class Maze:
         self.rows = size[1] * 2 + 1
         self.paths = create_paths(size)
         self.depth = get_depth(self.paths, size)
-        print(self.pathfind((2, 0), (2, 1)))
         self.maze = create_walls_from_paths(size, self.paths)
 
     def pathfind(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> list[int]:
@@ -552,7 +551,7 @@ def on_mouse_click(game_state: GameState, mouse: Tuple[int, int], win_button: Bu
 
     return GameState.PLAY
 
-def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]) -> GameState:
+def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]) -> Optional[GameState]:
     from pygame import font
 
     window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -592,8 +591,8 @@ def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tu
         for event in pygame.event.get():
             keys.update(event)
             if event.type == pygame.QUIT:
-                print("quit game")
                 running = False
+                return None
             if event.type == pygame.MOUSEBUTTONDOWN:
                 new_state = on_mouse_click(game_state, mouse, continue_to_next_level, restart_game)
                 if new_state == GameState.PLAY:
@@ -632,4 +631,16 @@ def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tu
     return game_state
 
 pygame.init()
-print(level(32, 0.1, 0.5, (8, 8)))
+level = 1
+
+while True:
+    maze_size = level + 4
+    enemy_speed = 0.5 * level / (level + 4)
+    out = run_level(32, 0.1, 0.5, (maze_size, maze_size))
+    if out is None:
+        print("Quitting game")
+        break
+    if out == GameState.WIN:
+        level += 1
+    if out == GameState.LOSE:
+        level = 1
