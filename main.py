@@ -7,8 +7,8 @@ import pygame
 from pygame import font
 
 dir = "E:/Python/maze_game_test"
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+BASE_SCREEN_WIDTH = 1280
+BASE_SCREEN_HEIGHT = 720
 
 # 0: DOWN
 # 1: UP
@@ -46,7 +46,7 @@ def vec2_from_int_tuple(tup: Tuple[int | float, int | float]) -> Vec2:
     return Vec2(tup[0], tup[1])
 
 
-SCREEN_SIZE = Vec2(SCREEN_WIDTH, SCREEN_HEIGHT)
+BASE_SCREEN_SIZE = Vec2(BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT)
 
 
 @dataclass
@@ -431,7 +431,7 @@ class Player:
         if state == GameState.LOSE:
             return
 
-        screen.blit(self.image, (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
+        screen.blit(self.image, (BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2))
 
     def get_bounding_box(self) -> Tuple[Vec2, Vec2]:
         return get_bounding_box(self.position, vec2_from_int_tuple(self.size))
@@ -557,7 +557,7 @@ def on_mouse_click(game_state: GameState, mouse: Tuple[int, int], win_button: Bu
 def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]) -> Optional[GameState]:
     from pygame import font
 
-    window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    window = pygame.display.set_mode((BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT), pygame.RESIZABLE)
     window.fill((0, 0, 0))
     running = True
     keys = Keys({})
@@ -583,7 +583,7 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
 
     font_medium = font.Font(None, 20)
     button_size = Vec2(128, 64)
-    button_center = Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2) - button_size / Vec2(2, 2)
+    button_center = Vec2(BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2) - button_size / Vec2(2, 2)
     continue_to_next_level = Button(pygame.image.load(f"{dir}/imgs/button.png"), font_medium.render("Continue", True, (0, 0, 0)), button_size, button_center)
     restart_game  = Button(pygame.image.load(f"{dir}/imgs/button fail.png"), font_medium.render("Restart", True, (0, 0, 0)), button_size, button_center)
     
@@ -591,6 +591,11 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
     clock = pygame.time.Clock()
     startup = pygame.time.get_ticks()
     now = pygame.time.get_ticks()
+
+    actual_width = BASE_SCREEN_WIDTH
+    actual_height = BASE_SCREEN_HEIGHT
+
+    base_window = pygame.surface.Surface((actual_width, actual_height))
 
     while running:
         mouse = pygame.mouse.get_pos() 
@@ -604,19 +609,22 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
                 if new_state == GameState.PLAY:
                     continue
                 running = False
+            if event.type == pygame.VIDEORESIZE:
+                actual_width = event.w
+                actual_height = event.h
 
         prev = now
         now = pygame.time.get_ticks()
         delta_time = (now - prev)
-        offset = -player.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        offset = -player.position + Vec2(BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2)
         direction = player.on_key(keys, game_state, maze, delta_time)
         if direction is not None:
             enemy.add_direction(direction)
         if now - startup > 15_000:
             enemy.make_moves(cell_size, delta_time)
-        player.render(window, game_state)
-        enemy.render(window, offset)
-        maze.render(window, offset)
+        player.render(base_window, game_state)
+        enemy.render(base_window, offset)
+        maze.render(base_window, offset)
 
         game_state = player.collision_detection(maze, game_state)
 
@@ -625,17 +633,19 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
         if is_collide(player_bb, enemy_bb):
             game_state = GameState.LOSE
 
-        alert_center = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 75)
+        alert_center = (BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2 - 75)
         if game_state == GameState.LOSE:
-            window.blit(lose, lose.get_rect(center=alert_center))
-            restart_game.render(window)
+            base_window.blit(lose, lose.get_rect(center=alert_center))
+            restart_game.render(base_window)
         if game_state == GameState.WIN:
-            window.blit(win, win.get_rect(center=alert_center))
-            continue_to_next_level.render(window)
+            base_window.blit(win, win.get_rect(center=alert_center))
+            continue_to_next_level.render(base_window)
 
+        transformed_window = pygame.transform.scale(base_window, (actual_width, actual_height))
+        window.blit(transformed_window, (0, 0))
         pygame.display.flip()
         clock.tick()
-        window.fill((0, 0, 0))
+        base_window.fill((0, 0, 0))
 
     return game_state
 
