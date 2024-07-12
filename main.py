@@ -395,7 +395,7 @@ class Player:
         if key.pressed(pygame.K_UP):
             self.position.y -= self.speed
 
-        new_path_grid_pos = maze.to_path_index(self.position)
+        new_path_grid_pos = maze.to_path_index(self.position * Vec2(2, 2))
         if new_path_grid_pos == self.path_grid_pos:
             return None
 
@@ -478,7 +478,7 @@ class Enemy:
         self.moves = [] if moves is None else moves
         self.moved_distance = 0
         self.distance_to_move = distance
-        self.path_grid_pos = maze.to_path_index(self.position)
+        self.path_grid_pos = maze.to_index(self.position)
         self.offset = position
 
     def move(self, direction: int):
@@ -500,11 +500,10 @@ class Enemy:
         self.moved_distance += self.speed
         
         if self.moved_distance < self.distance_to_move:
-            return None
+            return
 
         self.path_grid_pos = move_grid_index_by_direction(self.path_grid_pos, direction)
-        sprite_grid_pos = (self.path_grid_pos[0] * 2 + 1, self.path_grid_pos[1] * 2 + 1)
-        self.position = vec2_from_int_tuple(sprite_grid_pos) * Vec2(cell_size, cell_size)
+        self.position = vec2_from_int_tuple(self.path_grid_pos) * Vec2(cell_size, cell_size)
         self.moves.pop()
         self.moved_distance = 0
 
@@ -540,7 +539,9 @@ def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tu
     )
     player = Player(maze, speed=player_speed, size=Vec2(cell_size / 4, cell_size / 4), position=Vec2(cell_size, cell_size))
     enemy_position = (Vec2(maze_size[0] - 1, maze_size[1] - 1) * Vec2(2, 2) + Vec2(1, 1)) * Vec2(cell_size, cell_size)
-    enemy = Enemy(cell_size * 2, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=enemy_position, moves=maze.maze.pathfind((maze_size[0] - 1, maze_size[1] - 1), (0, 0)))
+    init_moves = maze.maze.pathfind((maze_size[0] - 1, maze_size[1] - 1), (0, 0))
+    init_moves = [move for move in init_moves for _ in range(2)]
+    enemy = Enemy(cell_size, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=enemy_position, moves=init_moves)
 
     font.init()
     font = font.Font(None, 70)
@@ -585,4 +586,4 @@ def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tu
         window.fill((0, 0, 0))
 
 pygame.init()
-level(64, 0.4, 0.5, (16, 16))
+level(32, 0.4, 0.5, (8, 8))
