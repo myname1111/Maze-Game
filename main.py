@@ -613,25 +613,26 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
                 actual_width = event.w
                 actual_height = event.h
 
-        prev = now
-        now = pygame.time.get_ticks()
-        delta_time = (now - prev)
-        offset = -player.position + Vec2(BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2)
-        direction = player.on_key(keys, game_state, maze, delta_time)
-        if direction is not None:
-            enemy.add_direction(direction)
-        if now - startup > 15_000:
-            enemy.make_moves(cell_size, delta_time)
-        player.render(base_window, game_state)
-        enemy.render(base_window, offset)
-        maze.render(base_window, offset)
+        if game_state == GameState.PLAY:
+            prev = now
+            now = pygame.time.get_ticks()
+            delta_time = (now - prev)
+            offset = -player.position + Vec2(BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2)
+            direction = player.on_key(keys, game_state, maze, delta_time)
+            if direction is not None:
+                enemy.add_direction(direction)
+            if now - startup > 15_000:
+                enemy.make_moves(cell_size, delta_time)
+            player.render(base_window, game_state)
+            enemy.render(base_window, offset)
+            maze.render(base_window, offset)
 
-        game_state = player.collision_detection(maze, game_state)
+            game_state = player.collision_detection(maze, game_state)
 
-        player_bb = player.get_bounding_box()
-        enemy_bb = enemy.get_bounding_box()
-        if is_collide(player_bb, enemy_bb):
-            game_state = GameState.LOSE
+            player_bb = player.get_bounding_box()
+            enemy_bb = enemy.get_bounding_box()
+            if is_collide(player_bb, enemy_bb):
+                game_state = GameState.LOSE
 
         alert_center = (BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2 - 75)
         if game_state == GameState.LOSE:
