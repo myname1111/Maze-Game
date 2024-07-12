@@ -218,7 +218,7 @@ def create_walls_from_paths(
             maze[y_new][x_new] = ' '
 
 
-    maze[1][size[0] * 2] = win
+    maze[size[1] * 2 - 1][size[0] * 2] = win
     return "".join(["".join(row) for row in maze])
 
 def step_back(pos: Tuple[int, int], paths: list[list[Optional[int]]]) -> Tuple[Tuple[int, int], int] | None:
@@ -570,11 +570,12 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
         Maze(maze_size),
         Vec2(0, 0),
     )
-    player = Player(maze, speed=player_speed, size=Vec2(cell_size / 4, cell_size / 4), position=Vec2(cell_size, cell_size))
-    enemy_position = (Vec2(maze_size[0] - 1, maze_size[1] - 1) * Vec2(2, 2) + Vec2(1, 1)) * Vec2(cell_size, cell_size)
-    init_moves = maze.maze.pathfind((maze_size[0] - 1, maze_size[1] - 1), (0, 0))
+    player_path_pos = (0, 1) if maze.maze.depth[1][0] == 1 else (1, 0)
+    player_pos = (vec2_from_int_tuple(player_path_pos) * Vec2(2, 2) + Vec2(1, 1)) * Vec2(cell_size, cell_size)
+    player = Player(maze, speed=player_speed, size=Vec2(cell_size / 4, cell_size / 4), position=player_pos)
+    init_moves = maze.maze.pathfind((0, 0), player_path_pos)
     init_moves = [move for move in init_moves for _ in range(2)]
-    enemy = Enemy(cell_size, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=enemy_position, moves=init_moves)
+    enemy = Enemy(cell_size, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=Vec2(cell_size, cell_size), moves=init_moves)
 
     font.init()
     font_big = font.Font(None, 70)
@@ -655,7 +656,7 @@ level = 1
 
 while True:
     maze_size = level + 4
-    enemy_speed = 0.2 * level / (level + 4)
+    enemy_speed = 0.2 * level / (level + 10)
     out = run_level(32, enemy_speed, 0.1, (maze_size, maze_size))
     if out is None:
         print("Quitting game")
