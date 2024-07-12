@@ -381,18 +381,20 @@ class Player:
         self.speed = speed
         self.path_grid_pos = maze.to_path_index(self.position)
 
-    def on_key(self, key: Keys, state: GameState, maze: MazeSprite) -> Optional[int]:
+    def on_key(self, key: Keys, state: GameState, maze: MazeSprite, delta_time: int) -> Optional[int]:
         if state == GameState.LOSE:
             return
 
+        delta_pos = self.speed * delta_time
+
         if key.pressed(pygame.K_LEFT):
-            self.position.x -= self.speed
+            self.position.x -= delta_pos
         if key.pressed(pygame.K_RIGHT):
-            self.position.x += self.speed
+            self.position.x += delta_pos
         if key.pressed(pygame.K_DOWN):
-            self.position.y += self.speed
+            self.position.y += delta_pos
         if key.pressed(pygame.K_UP):
-            self.position.y -= self.speed
+            self.position.y -= delta_pos
 
         new_path_grid_pos = maze.to_path_index(self.position * Vec2(2, 2))
         if new_path_grid_pos == self.path_grid_pos:
@@ -480,23 +482,24 @@ class Enemy:
         self.path_grid_pos = maze.to_index(self.position)
         self.offset = position
 
-    def move(self, direction: int):
+    def move(self, direction: int, delta_time: int):
+        delta_pos = self.speed * delta_time
         if direction == 0:
-            self.position.y += self.speed
+            self.position.y += delta_pos
         elif direction == 1:
-            self.position.y -= self.speed
+            self.position.y -= delta_pos
         elif direction == 2:
-            self.position.x += self.speed
+            self.position.x += delta_pos
         elif direction == 3:
-            self.position.x -= self.speed
+            self.position.x -= delta_pos
 
-    def make_moves(self, cell_size: int):
+    def make_moves(self, cell_size: int, delta_time: int):
         if len(self.moves) == 0:
             return
 
         direction = self.moves[-1]
-        self.move(direction)
-        self.moved_distance += self.speed
+        self.move(direction, delta_time)
+        self.moved_distance += delta_time * self.speed
         
         if self.moved_distance < self.distance_to_move:
             return
@@ -585,6 +588,7 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
     game_state = GameState.PLAY
     clock = pygame.time.Clock()
     startup = pygame.time.get_ticks()
+    now = pygame.time.get_ticks()
 
     while running:
         mouse = pygame.mouse.get_pos() 
@@ -599,13 +603,15 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
                     continue
                 running = False
 
+        prev = now
         now = pygame.time.get_ticks()
+        delta_time = (now - prev)
         offset = -player.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-        direction = player.on_key(keys, game_state, maze)
+        direction = player.on_key(keys, game_state, maze, delta_time)
         if direction is not None:
             enemy.add_direction(direction)
         if now - startup > 15_000:
-            enemy.make_moves(cell_size)
+            enemy.make_moves(cell_size, delta_time)
         player.render(window, game_state)
         enemy.render(window, offset)
         maze.render(window, offset)
@@ -635,8 +641,8 @@ level = 1
 
 while True:
     maze_size = level + 4
-    enemy_speed = 0.5 * level / (level + 4)
-    out = run_level(32, 0.1, 0.5, (maze_size, maze_size))
+    enemy_speed = 0.2 * level / (level + 4)
+    out = run_level(32, enemy_speed, 0.1, (maze_size, maze_size))
     if out is None:
         print("Quitting game")
         break
