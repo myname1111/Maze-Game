@@ -522,15 +522,37 @@ def is_collide(bounding_box1: Tuple[Vec2, Vec2], bounding_box2: Tuple[Vec2, Vec2
     return will_x_collide and will_y_collide
 
 class Button:
-    def __init__(self, img: pygame.Surface, text: pygame.Surface, size: Vec2, dest: Vec2, pos: Vec2):
+    def __init__(self, img: pygame.Surface, text: pygame.Surface, size: Vec2, dest: Vec2):
         self.img = pygame.transform.scale(img, size.to_tuple())
-        self.img.blit(text, (size / Vec2(2, 2) + dest).to_tuple())
-        self.pos = pos
+        text_center = text.get_rect(center=(size / Vec2(2, 2) + dest).to_tuple())
+        self.img.blit(text, text_center)
+        self.pos = dest
+        self.size = size
 
     def render(self, dest: pygame.Surface):
         dest.blit(self.img, self.pos.to_tuple())
 
-def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]):
+    def is_press(self, mouse_pos: Vec2) -> bool:
+        pos2 = self.pos + self.size
+        in_x = self.pos.x < mouse_pos.x < pos2.x
+        in_y = self.pos.y < mouse_pos.y < pos2.y
+        return in_x and in_y
+
+def on_mouse_click(game_state: GameState, mouse: Tuple[int, int], win_button: Button, lose_button: Button) -> GameState:
+    if game_state == GameState.LOSE:
+        is_press = lose_button.is_press(vec2_from_int_tuple(mouse))
+        if not is_press:
+            return GameState.PLAY
+        return GameState.LOSE
+    elif game_state == GameState.WIN:
+        is_press = win_button.is_press(vec2_from_int_tuple(mouse))
+        if not is_press:
+            return GameState.PLAY
+        return GameState.WIN
+
+    return GameState.PLAY
+
+def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tuple[int, int]) -> GameState:
     from pygame import font
 
     window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -553,19 +575,30 @@ def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tu
     enemy = Enemy(cell_size, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=enemy_position, moves=init_moves)
 
     font.init()
-    font = font.Font(None, 70)
-    lose = font.render("LOSE", True, (241, 40, 12))
-    win = font.render("WIN", True, (19, 232, 51))
+    font_big = font.Font(None, 70)
+    lose = font_big.render("LOSE", True, (241, 40, 12))
+    win = font_big.render("WIN", True, (19, 232, 51))
+
+    font_medium = font.Font(None, 20)
+    continue_to_next_level = Button(pygame.image.load(f"{dir}/imgs/button.png"), font_medium.render("Continue", True, (0, 0, 0)), Vec2(128, 64), Vec2(0, 0))
+    restart_game  = Button(pygame.image.load(f"{dir}/imgs/button fail.png"), font_medium.render("Restart", True, (0, 0, 0)), Vec2(128, 64), Vec2(0, 0))
+    
     game_state = GameState.PLAY
     clock = pygame.time.Clock()
     startup = pygame.time.get_ticks()
 
     while running:
+        mouse = pygame.mouse.get_pos() 
         for event in pygame.event.get():
+            keys.update(event)
             if event.type == pygame.QUIT:
                 print("quit game")
                 running = False
-            keys.update(event)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                new_state = on_mouse_click(game_state, mouse, continue_to_next_level, restart_game)
+                if new_state == GameState.PLAY:
+                    continue
+                running = False
 
         now = pygame.time.get_ticks()
         offset = -player.position + Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
@@ -587,12 +620,16 @@ def level(cell_size: int, enemy_speed: float, player_speed: float, maze_size: Tu
 
         if game_state == GameState.LOSE:
             window.blit(lose, lose.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+            restart_game.render(window)
         if game_state == GameState.WIN:
             window.blit(win, win.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+            continue_to_next_level.render(window)
 
         pygame.display.flip()
         clock.tick()
         window.fill((0, 0, 0))
 
+    return game_state
+
 pygame.init()
-level(32, 0.4, 0.5, (8, 8))
+print(level(32, 0.1, 0.5, (8, 8)))
