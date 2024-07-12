@@ -526,7 +526,7 @@ def is_collide(bounding_box1: Tuple[Vec2, Vec2], bounding_box2: Tuple[Vec2, Vec2
 class Button:
     def __init__(self, img: pygame.Surface, text: pygame.Surface, size: Vec2, dest: Vec2):
         self.img = pygame.transform.scale(img, size.to_tuple())
-        text_center = text.get_rect(center=(size / Vec2(2, 2) + dest).to_tuple())
+        text_center = text.get_rect(center=(size / Vec2(2, 2)).to_tuple())
         self.img.blit(text, text_center)
         self.pos = dest
         self.size = size
@@ -578,12 +578,14 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
 
     font.init()
     font_big = font.Font(None, 70)
-    lose = font_big.render("LOSE", True, (241, 40, 12))
-    win = font_big.render("WIN", True, (19, 232, 51))
+    lose = font_big.render("YOU LOST", True, (241, 40, 12))
+    win = font_big.render("YOU WON", True, (19, 232, 51))
 
     font_medium = font.Font(None, 20)
-    continue_to_next_level = Button(pygame.image.load(f"{dir}/imgs/button.png"), font_medium.render("Continue", True, (0, 0, 0)), Vec2(128, 64), Vec2(0, 0))
-    restart_game  = Button(pygame.image.load(f"{dir}/imgs/button fail.png"), font_medium.render("Restart", True, (0, 0, 0)), Vec2(128, 64), Vec2(0, 0))
+    button_size = Vec2(128, 64)
+    button_center = Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2) - button_size / Vec2(2, 2)
+    continue_to_next_level = Button(pygame.image.load(f"{dir}/imgs/button.png"), font_medium.render("Continue", True, (0, 0, 0)), button_size, button_center)
+    restart_game  = Button(pygame.image.load(f"{dir}/imgs/button fail.png"), font_medium.render("Restart", True, (0, 0, 0)), button_size, button_center)
     
     game_state = GameState.PLAY
     clock = pygame.time.Clock()
@@ -623,11 +625,12 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
         if is_collide(player_bb, enemy_bb):
             game_state = GameState.LOSE
 
+        alert_center = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 75)
         if game_state == GameState.LOSE:
-            window.blit(lose, lose.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+            window.blit(lose, lose.get_rect(center=alert_center))
             restart_game.render(window)
         if game_state == GameState.WIN:
-            window.blit(win, win.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+            window.blit(win, win.get_rect(center=alert_center))
             continue_to_next_level.render(window)
 
         pygame.display.flip()
