@@ -78,6 +78,7 @@ def run_level(
     lose = font_big.render("YOU LOST", True, (241, 40, 12))
     win = font_big.render("YOU WON", True, (19, 232, 51))
     level_text = font_big.render(f"Level {level}", True, (255, 255, 255))
+    title = font_big.render("Lava Maze Runner", True, (65, 236, 55))
 
     font_medium = font.Font(None, 20)
     button_size = Vec2(128, 64)
@@ -130,7 +131,6 @@ def run_level(
     death_lava = pygame.mixer.Sound(f"{DIR}/sounds/death lava.mp3")
     death_enemy = pygame.mixer.Sound(f"{DIR}/sounds/death enemy.mp3")
     game_over = pygame.mixer.Sound(f"{DIR}/sounds/game over.mp3")
-    death_by = None
 
     background_music.play(-1)
     start.play(0)
@@ -241,6 +241,12 @@ def run_level(
         if game_state != GameState.PLAY:
             background_music.stop()
 
+        base_window.blit(
+            title,
+            title.get_rect(
+                center=(BASE_SCREEN_WIDTH / 2, title.get_size()[1] / 2 + 10)
+            ),
+        )
         base_window.blit(level_text, (0, 0))
 
         transformed_window = pygame.transform.scale(
