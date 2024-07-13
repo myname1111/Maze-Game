@@ -141,13 +141,13 @@ class Player:
 
         delta_pos = self.speed * delta_time
 
-        if key.pressed(pygame.K_LEFT):
+        if key.pressed(pygame.K_a):
             self.position.x -= delta_pos
-        if key.pressed(pygame.K_RIGHT):
+        if key.pressed(pygame.K_d):
             self.position.x += delta_pos
-        if key.pressed(pygame.K_DOWN):
+        if key.pressed(pygame.K_s):
             self.position.y += delta_pos
-        if key.pressed(pygame.K_UP):
+        if key.pressed(pygame.K_w):
             self.position.y -= delta_pos
 
         new_path_grid_pos = maze.to_path_index(self.position * Vec2(2, 2))
