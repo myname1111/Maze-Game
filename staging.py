@@ -259,4 +259,8 @@ def run_level(
         clock.tick()
         base_window.fill((0, 0, 0))
 
+    win_sfx.stop()
+    game_over.stop()
+    game_over.stop()
+
     return game_state
