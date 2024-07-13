@@ -19,6 +19,19 @@ def run_level(
     maze_size: Tuple[int, int],
     level: int,
 ) -> Optional[GameState]:
+    """
+    Run a level with a set of specifications
+
+    Args:
+        cell_size (int): How big or small each cell of the maze should be, determines scale as a whole
+        enemy_speed (int): How fast the enemy runs in kilopixels per second
+        player_speed (int): How fast the player runs in kilopixels per second
+        maze_size (int, int): The size of the maze
+        level (int): What the current level is, used for displaying text
+
+    Returns:
+        Optional[GameState]: It either returns a GameState which describes how the level ended (won or lost), or None which represents quitting the game
+    """
     from pygame import font
 
     window = pygame.display.set_mode(
