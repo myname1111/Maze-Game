@@ -13,7 +13,8 @@ level = 1
 while True:
     maze_size = level + 4
     enemy_speed = 0.2 * level / (level + 10)
-    out = run_level(32, enemy_speed, 0.1, (maze_size, maze_size), level)
+    delay = 10 / (level + 2) + 5
+    out = run_level(32, enemy_speed, 0.1, (maze_size, maze_size), level, delay)
     if out is None:
         print("Quitting game")
         break

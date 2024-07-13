@@ -196,7 +196,9 @@ class Player:
 
         return (new_state, is_killed)
 
-    def collision_detection(self, maze: MazeSprite, init_state: GameState) -> GameState:
+    def collision_detection(
+        self, maze: MazeSprite, init_state: GameState
+    ) -> Tuple[GameState, bool]:
         """
         Does collision detection between the player and the maze
 
@@ -206,6 +208,7 @@ class Player:
 
         Returns:
             GameState: The new game_state
+            bool: Whether or not the player was killed
         """
 
         collided_cells = maze.collide_with_sprite(
@@ -221,7 +224,7 @@ class Player:
             is_killed |= is_killed_in_cell
         if is_killed:
             state = state.combine_state(self.kill(KillType.BY_LAVA))
-        return state
+        return (state, is_killed)
 
     def update(self, time_elapsed: int):
         """

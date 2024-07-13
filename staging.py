@@ -19,6 +19,7 @@ def run_level(
     player_speed: float,
     maze_size: Tuple[int, int],
     level: int,
+    delay: float,
 ) -> Optional[GameState]:
     """
     Run a level with a set of specifications
@@ -35,6 +36,7 @@ def run_level(
     """
     from pygame import font
 
+    delay = int(delay * 1000)
     window = pygame.display.set_mode(
         (BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT), pygame.RESIZABLE
     )
@@ -112,17 +114,29 @@ def run_level(
     lives = player.lives
 
     if 0 < level < 5:
-        sound = pygame.mixer.Sound(f"{DIR}/sounds/1-5.mp3")
-    elif 5 < level < 10:
-        sound = pygame.mixer.Sound(f"{DIR}/sounds/5-10.mp3")
+        background_music = pygame.mixer.Sound(f"{DIR}/sounds/1-5.mp3")
+    elif 4 < level < 10:
+        background_music = pygame.mixer.Sound(f"{DIR}/sounds/5-10.mp3")
     else:
-        sound_picker = random.randint(0, 1)
-        if sound_picker == 0:
-            sound = pygame.mixer.Sound(f"{DIR}/sounds/10A+.mp3")
-        if sound_picker == 1:
-            sound = pygame.mixer.Sound(f"{DIR}/sounds/10B+.mp3")
+        track_picker = random.randint(0, 1)
+        if track_picker == 0:
+            background_music = pygame.mixer.Sound(f"{DIR}/sounds/10A+.mp3")
+        if background_music == 1:
+            background_music = pygame.mixer.Sound(f"{DIR}/sounds/10B+.mp3")
 
-    sound.play(-1)
+    start = pygame.mixer.Sound(f"{DIR}/sounds/start.mp3")
+    start_ai = pygame.mixer.Sound(f"{DIR}/sounds/start ai.mp3")
+    win_sfx = pygame.mixer.Sound(f"{DIR}/sounds/win.mp3")
+    death_lava = pygame.mixer.Sound(f"{DIR}/sounds/death lava.mp3")
+    death_enemy = pygame.mixer.Sound(f"{DIR}/sounds/death enemy.mp3")
+    game_over = pygame.mixer.Sound(f"{DIR}/sounds/game over.mp3")
+    death_by = None
+
+    background_music.play(-1)
+    start.play(0)
+
+    has_started = False
+    prev_game_state = GameState.PLAY
 
     while running:
         mouse = pygame.mouse.get_pos()
@@ -154,15 +168,19 @@ def run_level(
             direction = player.on_key(keys, game_state, maze, delta_time)
             if direction is not None:
                 enemy.add_direction(direction)
-                print(enemy.moves, direction)
-            if now - startup > 1_000:
+            if now - startup > delay:
                 enemy.make_moves(cell_size, delta_time)
+                if not has_started:
+                    start_ai.play()
+                    has_started = True
             player.update(now - startup)
             player.render(base_window, game_state)
             enemy.render(base_window, offset)
             maze.render(base_window, offset)
 
-            game_state = player.collision_detection(maze, game_state)
+            (game_state, is_killed) = player.collision_detection(maze, game_state)
+            if is_killed:
+                death_lava.play(0)
 
             player_bb = player.get_bounding_box()
             enemy_bb = enemy.get_bounding_box()
@@ -173,6 +191,8 @@ def run_level(
 
             if is_collide(player_bb, enemy_bb):
                 game_state = player.kill(KillType.BY_ENEMY)
+                if player.lives > 0:
+                    death_enemy.play(0)
             if player.lives != lives:
                 # new_pos = maze.to_path_index(player.position)
                 new_pos = player_path_pos
@@ -198,9 +218,17 @@ def run_level(
                 # enemy.moves = new_moves
                 # print(init_moves, "what")
                 lives = player.lives
+                startup = now
 
                 # TODO: Move the enemy to the nearest path cell, then do everything else
         # print(player.position)
+
+        if prev_game_state != game_state:
+            if game_state == GameState.WIN:
+                win_sfx.play(0)
+            if game_state == GameState.LOSE:
+                game_over.play(0)
+            prev_game_state = game_state
 
         alert_center = (BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2 - 75)
         if game_state == GameState.LOSE:
@@ -209,6 +237,9 @@ def run_level(
         if game_state == GameState.WIN:
             base_window.blit(win, win.get_rect(center=alert_center))
             continue_to_next_level.render(base_window)
+
+        if game_state != GameState.PLAY:
+            background_music.stop()
 
         base_window.blit(level_text, (0, 0))
 
@@ -219,7 +250,5 @@ def run_level(
         pygame.display.flip()
         clock.tick()
         base_window.fill((0, 0, 0))
-
-    sound.stop()
 
     return game_state
