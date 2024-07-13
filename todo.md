@@ -7,7 +7,8 @@
     - [x] Make maze pathfinding algorithm
     - [x] Follow path to player
   - [x] Add level text
-  - [ ] Add lives system
+  - [x] Add lives system
   - [x] Get better textures
   - [ ] Make documentation
+  - [ ] Add music
   - [ ] Create presentation

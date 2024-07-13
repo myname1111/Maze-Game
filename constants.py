@@ -1,0 +1,6 @@
+from vector import Vec2
+
+BASE_SCREEN_WIDTH = 1280
+BASE_SCREEN_HEIGHT = 720
+BASE_SCREEN_SIZE = Vec2(BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT)
+DIR = "E:/Python/maze_game_test"
