@@ -1,4 +1,5 @@
 import random
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Optional, Self, Tuple
@@ -324,7 +325,10 @@ class MazeSprite:
     
     def to_path_index(self, pos: Vec2) -> Tuple[int, int]:
         sprite_grid_pos = self.to_index(pos)
-        return (sprite_grid_pos[0] // 2, sprite_grid_pos[1] // 2)
+        return ((sprite_grid_pos[0]) // 2, sprite_grid_pos[1] // 2)
+
+    def from_path_index(self, pos: Tuple[int, int]) -> Vec2:
+        return Vec2(pos[0] * 2 + 1, pos[1] * 2 + 1) * self.cell_size + self.offset
 
     def collide_with_sprite(self, other_pos: Vec2, other_size: Vec2) -> list[str]:
         points = get_bounding_box(other_pos, other_size)
@@ -364,6 +368,25 @@ def get_direction_from_offset(offset: Tuple[int, int]) -> Optional[int]:
     elif offset == (-1, 0):
         return 3
 
+def move_back[T](in_list: Tuple[T, T], new_value: T) -> Tuple[T, T]:
+    return (deepcopy(in_list[1]), deepcopy(new_value))
+
+@dataclass
+class PrevPos:
+    prev_pos: Tuple[Vec2, Vec2]
+    pos_updates: int
+    prev_pos_update_time: int
+
+    def update(self, time_elapsed: int, new_position: Vec2):
+        new_pos_updates = time_elapsed // self.prev_pos_update_time
+        if self.pos_updates < new_pos_updates:
+            self.pos_updates = new_pos_updates
+            self.prev_pos = move_back(self.prev_pos, new_position)
+
+class KillType(IntEnum):
+    BY_LAVA = 0
+    BY_ENEMY = 1
+
 class Player:
 
     def __init__(
@@ -372,6 +395,9 @@ class Player:
         position: Optional[Vec2] = None,
         size: Optional[Vec2] = None,
         speed: float = 1,
+        lives: int = 3,
+        prev_pos_update_time_lava: int = 1_000,
+        prev_pos_update_time_enemy: int = 5_000
     ) -> None:
         self.position = Vec2(0, 0) if position is None else position
         self.image = pygame.image.load(f"{dir}/imgs/player.png")
@@ -380,6 +406,9 @@ class Player:
         self.size = self.image.get_size()
         self.speed = speed
         self.path_grid_pos = maze.to_path_index(self.position)
+        self.lives = lives
+        self.prev_pos_lava = PrevPos((deepcopy(self.position), deepcopy(self.position)), 0, prev_pos_update_time_lava)
+        self.prev_pos_enemy = PrevPos((deepcopy(self.position), deepcopy(self.position)), 0, prev_pos_update_time_enemy)
 
     def on_key(self, key: Keys, state: GameState, maze: MazeSprite, delta_time: int) -> Optional[int]:
         if state == GameState.LOSE:
@@ -407,25 +436,55 @@ class Player:
 
         return direction
 
-    def collide_with_cell(self, cell: str, init_state: GameState) -> GameState:
+    def collide_with_cell(self, cell: str, init_state: GameState) -> Tuple[GameState, bool]:
+        is_killed = False
+        new_state = init_state
+
         match cell:
             case " ":
-                return init_state
+                pass
             case "#":
-                return GameState.LOSE
+                is_killed = True
+                if self.lives <= 1:
+                    new_state = GameState.LOSE
+                new_state = GameState.PLAY
             case "X":
-                return GameState.WIN
+                new_state = GameState.WIN
             case _:
                 assert False
+
+        return (new_state, is_killed)
 
     def collision_detection(self, maze: MazeSprite, init_state: GameState) -> GameState:
         collided_cells = maze.collide_with_sprite(
             self.position, vec2_from_int_tuple(self.image.get_size())
         )
         state = init_state
+        is_killed = False
         for collided_cell in collided_cells:
-            state = state.combine_state(self.collide_with_cell(collided_cell, state))
+            (new_state, is_killed_in_cell) = self.collide_with_cell(collided_cell, state)
+            state = state.combine_state(new_state)
+            is_killed |= is_killed_in_cell
+        if is_killed:
+            state = state.combine_state(self.kill(KillType.BY_LAVA))
         return state
+
+    def update(self, time_elapsed: int):
+        self.prev_pos_lava.update(time_elapsed, self.position)
+        self.prev_pos_enemy.update(time_elapsed, self.position)
+
+    def kill(self, kill_type: KillType) -> GameState:
+        if kill_type == KillType.BY_LAVA:
+            self.position = deepcopy(self.prev_pos_lava.prev_pos[0])
+        if kill_type == KillType.BY_ENEMY:
+            self.position = deepcopy(self.prev_pos_enemy.prev_pos[0])
+        self.prev_pos_lava.prev_pos = (deepcopy(self.position), deepcopy(self.position))
+        self.lives -= 1
+
+        if self.lives <= 0:
+            return GameState.LOSE
+        else:
+            return GameState.PLAY
 
     def render(self, screen: pygame.Surface, state: GameState):
         if state == GameState.LOSE:
@@ -479,8 +538,7 @@ class Enemy:
         self.moves = [] if moves is None else moves
         self.moved_distance = 0
         self.distance_to_move = distance
-        self.path_grid_pos = maze.to_index(self.position)
-        self.offset = position
+        self.grid_pos = maze.to_index(self.position)
 
     def move(self, direction: int, delta_time: int):
         delta_pos = self.speed * delta_time
@@ -504,8 +562,8 @@ class Enemy:
         if self.moved_distance < self.distance_to_move:
             return
 
-        self.path_grid_pos = move_grid_index_by_direction(self.path_grid_pos, direction)
-        self.position = vec2_from_int_tuple(self.path_grid_pos) * Vec2(cell_size, cell_size)
+        self.grid_pos = move_grid_index_by_direction(self.grid_pos, direction)
+        self.position = vec2_from_int_tuple(self.grid_pos) * Vec2(cell_size, cell_size)
         self.moves.pop()
         self.moved_distance = 0
 
@@ -517,6 +575,12 @@ class Enemy:
         
     def get_bounding_box(self) -> Tuple[Vec2, Vec2]:
         return get_bounding_box(self.position, vec2_from_int_tuple(self.size))
+
+    def path_pos_on_finish(self) -> Tuple[int, int]:
+        out = self.grid_pos
+        for direction in self.moves:
+            out = move_grid_index_by_direction(out, direction)
+        return out
 
 def is_collide(bounding_box1: Tuple[Vec2, Vec2], bounding_box2: Tuple[Vec2, Vec2]):
     will_x_collide = bounding_box1[0].x < bounding_box2[1].x and bounding_box2[0].x < bounding_box1[1].x
@@ -571,11 +635,11 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
         Vec2(0, 0),
     )
     player_path_pos = (0, 1) if maze.maze.depth[1][0] == 1 else (1, 0)
-    player_pos = (vec2_from_int_tuple(player_path_pos) * Vec2(2, 2) + Vec2(1, 1)) * Vec2(cell_size, cell_size)
+    player_pos = (vec2_from_int_tuple(player_path_pos) * Vec2(2, 2) + Vec2(11 / 8, 11 / 8)) * Vec2(cell_size, cell_size)
     player = Player(maze, speed=player_speed, size=Vec2(cell_size / 4, cell_size / 4), position=player_pos)
     init_moves = maze.maze.pathfind((0, 0), player_path_pos)
     init_moves = [move for move in init_moves for _ in range(2)]
-    enemy = Enemy(cell_size, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=Vec2(cell_size, cell_size), moves=init_moves)
+    enemy = Enemy(cell_size, maze, speed=enemy_speed, size=Vec2(cell_size, cell_size), position=Vec2(cell_size, cell_size), moves=deepcopy(init_moves))
 
     font.init()
     font_big = font.Font(None, 70)
@@ -588,6 +652,10 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
     button_center = Vec2(BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2) - button_size / Vec2(2, 2)
     continue_to_next_level = Button(pygame.image.load(f"{dir}/imgs/button.png"), font_medium.render("Continue", True, (0, 0, 0)), button_size, button_center)
     restart_game  = Button(pygame.image.load(f"{dir}/imgs/button fail.png"), font_medium.render("Restart", True, (0, 0, 0)), button_size, button_center)
+
+    heart_image = pygame.image.load(f"{dir}/imgs/heart.png")
+    heart_size = (cell_size * 1.5, cell_size * 1.5)
+    heart_image = pygame.transform.scale(heart_image, heart_size)
     
     game_state = GameState.PLAY
     clock = pygame.time.Clock()
@@ -598,6 +666,8 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
     actual_height = BASE_SCREEN_HEIGHT
 
     base_window = pygame.surface.Surface((actual_width, actual_height))
+
+    lives = player.lives
 
     while running:
         mouse = pygame.mouse.get_pos() 
@@ -615,6 +685,8 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
                 actual_width = event.w
                 actual_height = event.h
 
+        # print(enemy.grid_pos)
+        # print(enemy.position)
         if game_state == GameState.PLAY:
             prev = now
             now = pygame.time.get_ticks()
@@ -623,8 +695,10 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
             direction = player.on_key(keys, game_state, maze, delta_time)
             if direction is not None:
                 enemy.add_direction(direction)
-            if now - startup > 15_000:
+                print(enemy.moves, direction)
+            if now - startup > 1_000:
                 enemy.make_moves(cell_size, delta_time)
+            player.update(now - startup)
             player.render(base_window, game_state)
             enemy.render(base_window, offset)
             maze.render(base_window, offset)
@@ -633,8 +707,38 @@ def run_level(cell_size: int, enemy_speed: float, player_speed: float, maze_size
 
             player_bb = player.get_bounding_box()
             enemy_bb = enemy.get_bounding_box()
+            for i in range(player.lives):
+                base_window.blit(heart_image, (BASE_SCREEN_WIDTH - heart_size[0] * (i + 1), 0))
+
             if is_collide(player_bb, enemy_bb):
-                game_state = GameState.LOSE
+                game_state = player.kill(KillType.BY_ENEMY)
+            if player.lives != lives:
+                # new_pos = maze.to_path_index(player.position)
+                new_pos = player_path_pos
+                player.path_grid_pos = new_pos
+                player.position = maze.from_path_index(new_pos) + Vec2(cell_size / 2, cell_size / 2)
+
+                # new_enemy_pos = maze.to_path_index(enemy.position)
+                new_enemy_pos = (0, 0)
+                # new_enemy_pos = ((enemy.grid_pos[0] // 2 - 1), (enemy.grid_pos[1] - 1) // 2)
+                enemy.position = maze.from_path_index(new_enemy_pos)
+                enemy.grid_pos = (new_enemy_pos[0] * 2 + 1, new_enemy_pos[1] * 2 + 1)
+                enemy.moved_distance = 0
+
+                new_moves = maze.maze.pathfind(new_enemy_pos, new_pos)
+                print(new_moves, new_enemy_pos, new_pos)
+                # # print(enemy.moves)
+                # new_moves += enemy.moves[-2:]
+                enemy.moves = deepcopy([move for move in new_moves for _ in range(2)])
+                print(enemy.moves, "moves")
+                # enemy.moves = deepcopy(init_moves)
+                # enemy.moves = new_moves
+                # print(init_moves, "what")
+                lives = player.lives
+
+                # TODO: Move the enemy to the nearest path cell, then do everything else
+        # print(player.position)
+
 
         alert_center = (BASE_SCREEN_WIDTH / 2, BASE_SCREEN_HEIGHT / 2 - 75)
         if game_state == GameState.LOSE:
