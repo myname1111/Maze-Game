@@ -1,3 +1,4 @@
+import random
 from copy import deepcopy
 from typing import Optional, Tuple
 
@@ -110,6 +111,19 @@ def run_level(
 
     lives = player.lives
 
+    if 0 < level < 5:
+        sound = pygame.mixer.Sound(f"{DIR}/sounds/1-5.mp3")
+    elif 5 < level < 10:
+        sound = pygame.mixer.Sound(f"{DIR}/sounds/5-10.mp3")
+    else:
+        sound_picker = random.randint(0, 1)
+        if sound_picker == 0:
+            sound = pygame.mixer.Sound(f"{DIR}/sounds/10A+.mp3")
+        if sound_picker == 1:
+            sound = pygame.mixer.Sound(f"{DIR}/sounds/10B+.mp3")
+
+    sound.play(-1)
+
     while running:
         mouse = pygame.mouse.get_pos()
         for event in pygame.event.get():
@@ -205,5 +219,7 @@ def run_level(
         pygame.display.flip()
         clock.tick()
         base_window.fill((0, 0, 0))
+
+    sound.stop()
 
     return game_state
