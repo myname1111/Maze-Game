@@ -9,6 +9,6 @@
   - [x] Add level text
   - [x] Add lives system
   - [x] Get better textures
-  - [ ] Make documentation
+  - [x] Make documentation
   - [ ] Add music
   - [ ] Create presentation
