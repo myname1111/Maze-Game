@@ -10,5 +10,5 @@
   - [x] Add lives system
   - [x] Get better textures
   - [x] Make documentation
-  - [ ] Add music
+  - [x] Add music
   - [ ] Create presentation

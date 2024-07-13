@@ -20,6 +20,7 @@ def run_level(
     maze_size: Tuple[int, int],
     level: int,
     delay: float,
+    window: pygame.Surface,
 ) -> Optional[GameState]:
     """
     Run a level with a set of specifications
@@ -30,6 +31,7 @@ def run_level(
         player_speed (int): How fast the player runs in kilopixels per second
         maze_size (int, int): The size of the maze
         level (int): What the current level is, used for displaying text
+        window (pygame.Surface): Window on which to draw on
 
     Returns:
         Optional[GameState]: It either returns a GameState which describes how the level ended (won or lost), or None which represents quitting the game
@@ -37,9 +39,6 @@ def run_level(
     from pygame import font
 
     delay = int(delay * 1000)
-    window = pygame.display.set_mode(
-        (BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT), pygame.RESIZABLE
-    )
     window.fill((0, 0, 0))
     running = True
     keys = Keys({})
@@ -107,10 +106,11 @@ def run_level(
     startup = pygame.time.get_ticks()
     now = pygame.time.get_ticks()
 
-    actual_width = BASE_SCREEN_WIDTH
-    actual_height = BASE_SCREEN_HEIGHT
+    actual_width = window.get_width()
+    actual_height = window.get_height()
+    print(actual_height, actual_width)
 
-    base_window = pygame.surface.Surface((actual_width, actual_height))
+    base_window = pygame.surface.Surface((BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT))
 
     lives = player.lives
 
@@ -139,7 +139,9 @@ def run_level(
     prev_game_state = GameState.PLAY
 
     while running:
+        scale = (actual_width / BASE_SCREEN_WIDTH, actual_height / BASE_SCREEN_HEIGHT)
         mouse = pygame.mouse.get_pos()
+        mouse = (mouse[0] / scale[0], mouse[1] / scale[1])
         for event in pygame.event.get():
             keys.update(event)
             if event.type == pygame.QUIT:

@@ -62,7 +62,7 @@ class Button:
 
 def on_mouse_click(
     game_state: GameState,
-    mouse: Tuple[int, int],
+    mouse: Tuple[float, float],
     win_button: Button,
     lose_button: Button,
 ) -> GameState:
